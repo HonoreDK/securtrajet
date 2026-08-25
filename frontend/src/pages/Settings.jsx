@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ArrowLeft, Shield, CreditCard, LogOut } from 'lucide-react'
+import { ArrowLeft, Shield, LogOut } from 'lucide-react'
 
 export default function Settings() {
-  const { user, profile, subscription, logout } = useAuth()
+  const { user, profile, logout } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -32,29 +32,6 @@ export default function Settings() {
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Nom :</strong> {profile?.first_name} {profile?.last_name}</p>
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Email :</strong> {user?.email}</p>
           <p style={{ fontSize: 14 }}><strong>Rôle :</strong> {profile?.role === 'admin' ? 'Administrateur' : 'Parent'}</p>
-        </div>
-
-        <div style={{ background: 'white', borderRadius: 16, padding: 24, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <CreditCard size={22} color="#0f766e" />
-            <h3>Abonnement</h3>
-          </div>
-          <p style={{ fontSize: 14, marginBottom: 6 }}>
-            Statut : <strong>{subscription?.status}</strong>
-          </p>
-          {subscription?.status === 'trial' && (
-            <p style={{ fontSize: 14, color: '#0f766e' }}>
-              Jours restants : <strong>{subscription.trialDaysLeft}</strong>
-            </p>
-          )}
-          {subscription?.status === 'active' && (
-            <p style={{ fontSize: 14, color: '#10b981' }}>Abonnement actif – 2 500 FCFA/mois</p>
-          )}
-          {!subscription?.isApproved && (
-            <p style={{ fontSize: 13, color: '#f59e0b', marginTop: 8 }}>
-              Compte en attente de validation administrateur
-            </p>
-          )}
         </div>
 
         {profile?.role === 'admin' && (
