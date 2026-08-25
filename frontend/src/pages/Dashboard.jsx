@@ -3,17 +3,26 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
+import PaymentPanel from '../components/PaymentPanel'
 import {
   Map, Users, Bell, Settings, LogOut, Battery, Wifi, WifiOff,
-  Plus, Shield, AlertTriangle, Menu, X, ShieldCheck, MapPinOff, UserPlus
+  Plus, Shield, AlertTriangle, Menu, X, ShieldCheck, MapPinOff, UserPlus,
+  CreditCard, Clock, CheckCircle2
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 const GREETING_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
+const SUB_STATUS = {
+  trial: { label: 'Essai gratuit', color: '#0f766e', bg: '#f0fdfa' },
+  active: { label: 'Actif', color: '#10b981', bg: '#ecfdf5' },
+  expired: { label: 'Expiré', color: '#ef4444', bg: '#fef2f2' },
+  pending_approval: { label: 'En attente de validation', color: '#f59e0b', bg: '#fffbeb' }
+}
+
 export default function Dashboard() {
-  const { user, profile, logout } = useAuth()
+  const { user, profile, subscription, activateSubscription, logout } = useAuth()
   const navigate = useNavigate()
   const [children, setChildren] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -145,6 +154,12 @@ export default function Dashboard() {
           >
             <Bell size={18} /> Alertes
             {unreadAlerts > 0 && <span style={styles.badge}>{unreadAlerts}</span>}
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activeTab === 'abonnement' ? styles.navActive : {}) }}
+            onClick={() => selectTab('abonnement')}
+          >
+            <CreditCard size={18} /> Abonnement
           </button>
           <button
             style={{ ...styles.navItem, ...(activeTab === 'parametres' ? styles.navActive : {}) }}
@@ -382,6 +397,73 @@ export default function Dashboard() {
             )}
           </div>
         )}
+
+        {activeTab === 'abonnement' && (() => {
+          const status = SUB_STATUS[subscription?.status] || SUB_STATUS.trial
+          return (
+            <div style={styles.content} className="fade-in">
+              <div style={styles.subCard}>
+                <div style={styles.subHeader}>
+                  <div style={styles.subIcon}>
+                    <CreditCard size={24} color="#0f766e" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={styles.subTitle}>Mon abonnement</h3>
+                    <span style={{ ...styles.subStatusPill, color: status.color, background: status.bg }}>
+                      {status.label}
+                    </span>
+                  </div>
+                </div>
+
+                {subscription?.status === 'trial' && (
+                  <div style={styles.subDetails}>
+                    <div style={styles.subRow}>
+                      <Clock size={16} color="#0f766e" />
+                      <span><strong>{subscription.trialDaysLeft}</strong> jour{subscription.trialDaysLeft > 1 ? 's' : ''} restant{subscription.trialDaysLeft > 1 ? 's' : ''} d'essai gratuit</span>
+                    </div>
+                    {subscription.trialEndsAt && (
+                      <p style={styles.subMuted}>
+                        Fin de l'essai le {format(new Date(subscription.trialEndsAt), 'dd MMMM yyyy', { locale: fr })}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {subscription?.status === 'active' && (
+                  <div style={styles.subDetails}>
+                    <div style={styles.subRow}>
+                      <CheckCircle2 size={16} color="#10b981" />
+                      <span>Abonnement actif — <strong>2 500 FCFA/mois</strong></span>
+                    </div>
+                    {profile?.last_payment_at && (
+                      <p style={styles.subMuted}>
+                        Dernier paiement le {format(new Date(profile.last_payment_at), 'dd MMMM yyyy', { locale: fr })}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {subscription?.status === 'expired' && (
+                  <div style={styles.subDetails}>
+                    <div style={styles.subRow}>
+                      <AlertTriangle size={16} color="#ef4444" />
+                      <span>Ton essai gratuit est terminé. Active l'abonnement pour continuer.</span>
+                    </div>
+                  </div>
+                )}
+
+                {subscription?.status !== 'active' && (
+                  <div style={styles.subPayZone}>
+                    <p style={styles.subPayTitle}>
+                      {subscription?.status === 'trial' ? 'Activer maintenant (optionnel)' : 'Activer mon abonnement'}
+                    </p>
+                    <PaymentPanel onSuccess={activateSubscription} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
       </main>
 
       {/* Modal Add Child */}
@@ -629,5 +711,24 @@ const styles = {
   secondaryBtn: {
     padding: '10px 16px', borderRadius: 10, background: '#f0fdfa',
     color: '#0f766e', fontWeight: 600, fontSize: 13
-  }
+  },
+  subCard: {
+    background: 'white', borderRadius: 20, padding: 28, maxWidth: 480,
+    boxShadow: '0 4px 20px rgba(15,118,110,0.08)'
+  },
+  subHeader: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 },
+  subIcon: {
+    width: 48, height: 48, borderRadius: 14, background: '#f0fdfa',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+  },
+  subTitle: { fontSize: 17, fontWeight: 700, color: '#134e4a', marginBottom: 6 },
+  subStatusPill: {
+    display: 'inline-block', padding: '3px 10px', borderRadius: 20,
+    fontSize: 12, fontWeight: 700
+  },
+  subDetails: { paddingTop: 16, borderTop: '1px solid #f0fdfa' },
+  subRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#334155' },
+  subMuted: { fontSize: 12, color: '#94a3b8', marginTop: 6, marginLeft: 24 },
+  subPayZone: { marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0fdfa' },
+  subPayTitle: { fontSize: 13, fontWeight: 600, color: '#134e4a', marginBottom: 4 }
 }
