@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [children, setChildren] = useState([])
   const [alerts, setAlerts] = useState([])
   const [selectedChild, setSelectedChild] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768)
   const [showAddChild, setShowAddChild] = useState(false)
   const [newChild, setNewChild] = useState({ firstName: '', lastName: '', birthDate: '' })
   const [activeTab, setActiveTab] = useState('carte')
@@ -43,6 +43,11 @@ export default function Dashboard() {
       setSelectedChild(children[0].id)
     }
   }, [children, selectedChild])
+
+  const selectTab = (tab) => {
+    setActiveTab(tab)
+    if (window.innerWidth <= 768) setSidebarOpen(false)
+  }
 
   const handleLogout = () => {
     logout()
@@ -76,7 +81,11 @@ export default function Dashboard() {
   return (
     <div style={styles.layout}>
       {/* Sidebar */}
-      <aside style={{ ...styles.sidebar, width: sidebarOpen ? 260 : 0, overflow: 'hidden' }}>
+      <div
+        className={`dash-sidebar-backdrop ${sidebarOpen ? 'open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+      <aside className="dash-sidebar" style={{ ...styles.sidebar, width: sidebarOpen ? 260 : 0, overflow: 'hidden' }}>
         <div style={styles.sidebarHeader}>
           <div style={styles.brand}>
             <div style={styles.brandIcon}>
@@ -89,19 +98,19 @@ export default function Dashboard() {
         <nav style={styles.nav}>
           <button
             style={{ ...styles.navItem, ...(activeTab === 'carte' ? styles.navActive : {}) }}
-            onClick={() => setActiveTab('carte')}
+            onClick={() => selectTab('carte')}
           >
             <Map size={18} /> Carte
           </button>
           <button
             style={{ ...styles.navItem, ...(activeTab === 'enfants' ? styles.navActive : {}) }}
-            onClick={() => setActiveTab('enfants')}
+            onClick={() => selectTab('enfants')}
           >
             <Users size={18} /> Mes enfants
           </button>
           <button
             style={{ ...styles.navItem, ...(activeTab === 'alertes' ? styles.navActive : {}) }}
-            onClick={() => setActiveTab('alertes')}
+            onClick={() => selectTab('alertes')}
           >
             <Bell size={18} /> Alertes
             {unreadAlerts > 0 && <span style={styles.badge}>{unreadAlerts}</span>}
@@ -197,7 +206,7 @@ export default function Dashboard() {
             </div>
 
             {/* Map + Info */}
-            <div style={styles.mapSection}>
+            <div className="dash-map-section" style={styles.mapSection}>
               <div style={styles.mapContainer}>
                 <MapView
                   children={children}
@@ -207,7 +216,7 @@ export default function Dashboard() {
               </div>
 
               {currentChild && (
-                <div style={styles.infoPanel}>
+                <div className="dash-info-panel" style={styles.infoPanel}>
                   <div style={styles.infoHeader}>
                     <div style={{
                       ...styles.childAvatar,
