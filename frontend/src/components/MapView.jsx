@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle, LayersControl, LayerGroup, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import store from '../data/store'
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl
@@ -40,26 +39,24 @@ function FitBounds({ positions }) {
   return null
 }
 
-export default function MapView({ children, selectedId, onSelect }) {
+export default function MapView({ children, positions = {}, geofences = [], selectedId, onSelect }) {
   const markers = useMemo(() => {
     return children.map(child => {
-      const pos = store.getLatestPosition(child.id)
+      const pos = positions[child.id]
       if (!pos) return null
       const color = child.status === 'online' ? '#10b981' : child.status === 'low_battery' ? '#f59e0b' : '#ef4444'
       return {
         id: child.id,
-        name: child.firstName,
+        name: child.first_name,
         lat: pos.latitude,
         lng: pos.longitude,
         color,
-        letter: child.firstName.charAt(0).toUpperCase(),
+        letter: child.first_name.charAt(0).toUpperCase(),
         battery: child.battery,
         status: child.status
       }
     }).filter(Boolean)
-  }, [children])
-
-  const geofences = store.getMyGeofences()
+  }, [children, positions])
 
   const center = markers.length > 0
     ? [markers[0].lat, markers[0].lng]
@@ -97,11 +94,11 @@ export default function MapView({ children, selectedId, onSelect }) {
       </LayersControl>
       <FitBounds positions={markers} />
 
-      {geofences.map(g => (
+      {geofences.filter(g => g.is_active).map(g => (
         <Circle
           key={g.id}
-          center={[g.lat, g.lng]}
-          radius={g.radius}
+          center={[g.center_lat, g.center_lng]}
+          radius={g.radius_meters}
           pathOptions={{
             color: '#0f766e',
             fillColor: '#14b8a6',

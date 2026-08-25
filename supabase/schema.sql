@@ -304,6 +304,13 @@ CREATE POLICY "Parents update their alerts"
   USING (parent_id = auth.uid());
 
 -- ============================================================
+-- 8b. Realtime : le dashboard s'abonne aux changements en direct
+-- ============================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.children;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.positions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.alerts;
+
+-- ============================================================
 -- 9. Vue pour le statut d'abonnement (pratique côté client)
 -- ============================================================
 CREATE OR REPLACE VIEW public.my_subscription AS

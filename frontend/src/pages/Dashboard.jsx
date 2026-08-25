@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import store from '../data/store'
+import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
 import {
   Map, Users, Bell, Settings, LogOut, Battery, Wifi, WifiOff,
@@ -17,26 +17,44 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [children, setChildren] = useState([])
   const [alerts, setAlerts] = useState([])
+  const [positions, setPositions] = useState({}) // child_id -> dernière position
+  const [geofences, setGeofences] = useState([])
   const [selectedChild, setSelectedChild] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768)
   const [showAddChild, setShowAddChild] = useState(false)
   const [newChild, setNewChild] = useState({ firstName: '', lastName: '', birthDate: '' })
   const [activeTab, setActiveTab] = useState('carte')
 
-  const refresh = useCallback(() => {
-    setChildren(store.getMyChildren())
-    setAlerts(store.getMyAlerts())
-  }, [])
+  const refresh = useCallback(async () => {
+    if (!user) return
+    const [childrenRes, alertsRes, positionsRes, geofencesRes] = await Promise.all([
+      supabase.from('children').select('*').eq('parent_id', user.id).order('created_at', { ascending: true }),
+      supabase.from('alerts').select('*').eq('parent_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('positions').select('*').eq('parent_id', user.id).order('recorded_at', { ascending: false }),
+      supabase.from('geofences').select('*').eq('parent_id', user.id)
+    ])
+    setChildren(childrenRes.data || [])
+    setAlerts(alertsRes.data || [])
+    setGeofences(geofencesRes.data || [])
+    const latestByChild = {}
+    for (const p of positionsRes.data || []) {
+      if (!latestByChild[p.child_id]) latestByChild[p.child_id] = p
+    }
+    setPositions(latestByChild)
+  }, [user])
 
   useEffect(() => {
     refresh()
-    // Simulate live updates every 8 seconds
-    const interval = setInterval(() => {
-      store.simulateMovement()
-      refresh()
-    }, 8000)
-    return () => clearInterval(interval)
-  }, [refresh])
+    if (!user) return
+    // Rafraîchit dès qu'un traceur envoie une position, ou qu'un enfant/alerte change
+    const channel = supabase
+      .channel(`dashboard-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'children', filter: `parent_id=eq.${user.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'positions', filter: `parent_id=eq.${user.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts', filter: `parent_id=eq.${user.id}` }, refresh)
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [user, refresh])
 
   useEffect(() => {
     if (children.length > 0 && !selectedChild) {
@@ -54,10 +72,18 @@ export default function Dashboard() {
     navigate('/login')
   }
 
-  const handleAddChild = (e) => {
+  const handleAddChild = async (e) => {
     e.preventDefault()
     try {
-      store.addChild(newChild)
+      const trackerId = `TRK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+      const { error } = await supabase.from('children').insert({
+        parent_id: user.id,
+        first_name: newChild.firstName,
+        last_name: newChild.lastName,
+        birth_date: newChild.birthDate || null,
+        tracker_id: trackerId
+      })
+      if (error) throw error
       setNewChild({ firstName: '', lastName: '', birthDate: '' })
       setShowAddChild(false)
       refresh()
@@ -66,9 +92,14 @@ export default function Dashboard() {
     }
   }
 
-  const unreadAlerts = alerts.filter(a => !a.read).length
+  const markAlertRead = async (alertId) => {
+    await supabase.from('alerts').update({ is_read: true }).eq('id', alertId)
+    refresh()
+  }
+
+  const unreadAlerts = alerts.filter(a => !a.is_read).length
   const currentChild = children.find(c => c.id === selectedChild)
-  const position = currentChild ? store.getLatestPosition(currentChild.id) : null
+  const position = currentChild ? positions[currentChild.id] : null
 
   const getStatusColor = (status) => {
     if (status === 'online') return '#10b981'
@@ -133,9 +164,9 @@ export default function Dashboard() {
 
         <div style={styles.sidebarFooter}>
           <div style={styles.userInfo}>
-            <div style={styles.avatar}>{getInitial(user?.firstName)}</div>
+            <div style={styles.avatar}>{getInitial(profile?.first_name)}</div>
             <div>
-              <div style={styles.userName}>{user?.firstName} {user?.lastName}</div>
+              <div style={styles.userName}>{profile?.first_name} {profile?.last_name}</div>
               <div style={styles.userRole}>Parent</div>
             </div>
           </div>
@@ -153,7 +184,7 @@ export default function Dashboard() {
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div style={{ flex: 1 }}>
-            <h2 style={styles.greeting}>Bonjour {profile?.first_name || user?.firstName} 👋</h2>
+            <h2 style={styles.greeting}>Bonjour {profile?.first_name} 👋</h2>
             <p style={styles.greetingSub}>{GREETING_DATE.format(new Date())}</p>
           </div>
           <div style={styles.headerRight}>
@@ -197,7 +228,7 @@ export default function Dashboard() {
                     ...styles.chipDot,
                     background: getStatusColor(child.status)
                   }} />
-                  {child.firstName}
+                  {child.first_name}
                 </button>
               ))}
               <button style={styles.addChip} onClick={() => setShowAddChild(true)}>
@@ -210,6 +241,8 @@ export default function Dashboard() {
               <div style={styles.mapContainer}>
                 <MapView
                   children={children}
+                  positions={positions}
+                  geofences={geofences}
                   selectedId={selectedChild}
                   onSelect={setSelectedChild}
                 />
@@ -222,11 +255,11 @@ export default function Dashboard() {
                       ...styles.childAvatar,
                       background: getStatusColor(currentChild.status)
                     }}>
-                      {getInitial(currentChild.firstName)}
+                      {getInitial(currentChild.first_name)}
                     </div>
                     <div>
-                      <h3 style={styles.childName}>{currentChild.firstName} {currentChild.lastName}</h3>
-                      <p style={styles.trackerId}>{currentChild.trackerId}</p>
+                      <h3 style={styles.childName}>{currentChild.first_name} {currentChild.last_name}</h3>
+                      <p style={styles.trackerId}>{currentChild.tracker_id}</p>
                     </div>
                   </div>
 
@@ -245,7 +278,7 @@ export default function Dashboard() {
                     <div style={styles.lastPos}>
                       <p style={styles.lastPosLabel}>Dernière position</p>
                       <p style={styles.lastPosTime}>
-                        {formatDistanceToNow(new Date(position.timestamp), { addSuffix: true, locale: fr })}
+                        {formatDistanceToNow(new Date(position.recorded_at), { addSuffix: true, locale: fr })}
                       </p>
                       <p style={styles.coords}>
                         {position.latitude.toFixed(5)}, {position.longitude.toFixed(5)}
@@ -253,6 +286,15 @@ export default function Dashboard() {
                       {position.speed > 0 && (
                         <p style={styles.speed}>{position.speed.toFixed(1)} km/h</p>
                       )}
+                    </div>
+                  )}
+
+                  {!position && (
+                    <div style={styles.lastPos}>
+                      <p style={styles.lastPosLabel}>En attente du traceur</p>
+                      <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                        Aucune position reçue pour l'instant.
+                      </p>
                     </div>
                   )}
 
@@ -289,21 +331,21 @@ export default function Dashboard() {
             )}
             <div style={styles.childrenGrid}>
               {children.map(child => {
-                const pos = store.getLatestPosition(child.id)
+                const pos = positions[child.id]
                 return (
                   <div key={child.id} style={styles.childCard} onClick={() => { setSelectedChild(child.id); setActiveTab('carte') }}>
                     <div style={{ ...styles.childAvatarLg, background: getStatusColor(child.status) }}>
-                      {getInitial(child.firstName)}
+                      {getInitial(child.first_name)}
                     </div>
-                    <h4>{child.firstName} {child.lastName}</h4>
-                    <p style={styles.cardMeta}>{child.trackerId}</p>
+                    <h4>{child.first_name} {child.last_name}</h4>
+                    <p style={styles.cardMeta}>{child.tracker_id}</p>
                     <div style={styles.cardStats}>
                       <span><Battery size={14} /> {child.battery}%</span>
                       <span>{child.status === 'online' ? '🟢 En ligne' : '🔴 Hors ligne'}</span>
                     </div>
                     {pos && (
                       <p style={styles.cardTime}>
-                        {formatDistanceToNow(new Date(pos.timestamp), { addSuffix: true, locale: fr })}
+                        {formatDistanceToNow(new Date(pos.recorded_at), { addSuffix: true, locale: fr })}
                       </p>
                     )}
                   </div>
@@ -323,17 +365,17 @@ export default function Dashboard() {
                 {alerts.map(alert => (
                   <div
                     key={alert.id}
-                    style={{ ...styles.alertItem, opacity: alert.read ? 0.6 : 1 }}
-                    onClick={() => { store.markAlertRead(alert.id); refresh() }}
+                    style={{ ...styles.alertItem, opacity: alert.is_read ? 0.6 : 1 }}
+                    onClick={() => markAlertRead(alert.id)}
                   >
                     <AlertTriangle size={20} color={alert.type === 'low_battery' ? '#f59e0b' : '#ef4444'} />
                     <div style={{ flex: 1 }}>
                       <p style={styles.alertMsg}>{alert.message}</p>
                       <p style={styles.alertTime}>
-                        {formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true, locale: fr })}
+                        {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: fr })}
                       </p>
                     </div>
-                    {!alert.read && <span style={styles.unreadDot} />}
+                    {!alert.is_read && <span style={styles.unreadDot} />}
                   </div>
                 ))}
               </div>

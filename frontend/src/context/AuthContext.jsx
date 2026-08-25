@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import store from '../data/store'
 
 const AuthContext = createContext(null)
 
@@ -29,7 +28,6 @@ export function AuthProvider({ children }) {
       return
     }
     setProfile(data)
-    store.setCurrentUser(userId, { email: data.email, firstName: data.first_name, lastName: data.last_name })
 
     // Statut d'accès
     const hasAccess =
@@ -100,7 +98,6 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await supabase.auth.signOut()
-    store.logout()
     setUser(null)
     setProfile(null)
     setSubscription(null)
