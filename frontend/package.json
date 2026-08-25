@@ -1,0 +1,28 @@
+{
+  "name": "securtrajet-pwa",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "date-fns": "^4.1.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.469.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}
