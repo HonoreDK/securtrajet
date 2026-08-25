@@ -88,3 +88,36 @@ a {
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* Dashboard responsive (mobile) */
+.dash-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dash-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 200;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .dash-sidebar-backdrop.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    z-index: 150;
+  }
+
+  .dash-map-section {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+
+  .dash-info-panel {
+    width: 100% !important;
+  }
+}
