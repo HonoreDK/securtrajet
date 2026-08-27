@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
 import PaymentPanel from '../components/PaymentPanel'
+import Avatar from '../components/Avatar'
+import { uploadAvatar, fileExt } from '../lib/avatar'
 import {
   Map, Users, Bell, Settings, LogOut, Battery, Wifi, WifiOff,
   Plus, Shield, AlertTriangle, Menu, X, ShieldCheck, MapPinOff, UserPlus,
-  CreditCard, Clock, CheckCircle2
+  CreditCard, Clock, CheckCircle2, Camera
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -32,6 +34,9 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 768)
   const [showAddChild, setShowAddChild] = useState(false)
   const [newChild, setNewChild] = useState({ firstName: '', lastName: '', birthDate: '' })
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const [savingChild, setSavingChild] = useState(false)
   const [activeTab, setActiveTab] = useState('carte')
 
   const refresh = useCallback(async () => {
@@ -81,23 +86,46 @@ export default function Dashboard() {
     navigate('/login')
   }
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const closeAddChildModal = () => {
+    setShowAddChild(false)
+    setNewChild({ firstName: '', lastName: '', birthDate: '' })
+    setPhotoFile(null)
+    setPhotoPreview(null)
+  }
+
   const handleAddChild = async (e) => {
     e.preventDefault()
+    setSavingChild(true)
     try {
+      const childId = crypto.randomUUID()
+      let photoUrl = null
+      if (photoFile) {
+        photoUrl = await uploadAvatar(photoFile, `${user.id}/child-${childId}.${fileExt(photoFile)}`)
+      }
       const trackerId = `TRK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
       const { error } = await supabase.from('children').insert({
+        id: childId,
         parent_id: user.id,
         first_name: newChild.firstName,
         last_name: newChild.lastName,
         birth_date: newChild.birthDate || null,
-        tracker_id: trackerId
+        tracker_id: trackerId,
+        photo_url: photoUrl
       })
       if (error) throw error
-      setNewChild({ firstName: '', lastName: '', birthDate: '' })
-      setShowAddChild(false)
+      closeAddChildModal()
       refresh()
     } catch (err) {
       alert(err.message || "Impossible d'ajouter l'enfant, réessayez.")
+    } finally {
+      setSavingChild(false)
     }
   }
 
@@ -179,7 +207,7 @@ export default function Dashboard() {
 
         <div style={styles.sidebarFooter}>
           <div style={styles.userInfo}>
-            <div style={styles.avatar}>{getInitial(profile?.first_name)}</div>
+            <Avatar src={profile?.avatar_url} letter={getInitial(profile?.first_name)} size={36} fontSize={14} />
             <div>
               <div style={styles.userName}>{profile?.first_name} {profile?.last_name}</div>
               <div style={styles.userRole}>Parent</div>
@@ -239,10 +267,13 @@ export default function Dashboard() {
                   }}
                   onClick={() => setSelectedChild(child.id)}
                 >
-                  <span style={{
-                    ...styles.chipDot,
-                    background: getStatusColor(child.status)
-                  }} />
+                  <Avatar
+                    src={child.photo_url}
+                    letter={getInitial(child.first_name)}
+                    color={getStatusColor(child.status)}
+                    size={22}
+                    fontSize={11}
+                  />
                   {child.first_name}
                 </button>
               ))}
@@ -266,12 +297,13 @@ export default function Dashboard() {
               {currentChild && (
                 <div className="dash-info-panel" style={styles.infoPanel}>
                   <div style={styles.infoHeader}>
-                    <div style={{
-                      ...styles.childAvatar,
-                      background: getStatusColor(currentChild.status)
-                    }}>
-                      {getInitial(currentChild.first_name)}
-                    </div>
+                    <Avatar
+                      src={currentChild.photo_url}
+                      letter={getInitial(currentChild.first_name)}
+                      color={getStatusColor(currentChild.status)}
+                      size={48}
+                      fontSize={18}
+                    />
                     <div>
                       <h3 style={styles.childName}>{currentChild.first_name} {currentChild.last_name}</h3>
                       <p style={styles.trackerId}>{currentChild.tracker_id}</p>
@@ -349,9 +381,14 @@ export default function Dashboard() {
                 const pos = positions[child.id]
                 return (
                   <div key={child.id} style={styles.childCard} onClick={() => { setSelectedChild(child.id); setActiveTab('carte') }}>
-                    <div style={{ ...styles.childAvatarLg, background: getStatusColor(child.status) }}>
-                      {getInitial(child.first_name)}
-                    </div>
+                    <Avatar
+                      src={child.photo_url}
+                      letter={getInitial(child.first_name)}
+                      color={getStatusColor(child.status)}
+                      size={56}
+                      fontSize={22}
+                      style={{ margin: '0 auto 12px' }}
+                    />
                     <h4>{child.first_name} {child.last_name}</h4>
                     <p style={styles.cardMeta}>{child.tracker_id}</p>
                     <div style={styles.cardStats}>
@@ -468,7 +505,7 @@ export default function Dashboard() {
 
       {/* Modal Add Child */}
       {showAddChild && (
-        <div style={styles.modalOverlay} onClick={() => setShowAddChild(false)}>
+        <div style={styles.modalOverlay} onClick={closeAddChildModal}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <div style={styles.modalHeaderLeft}>
@@ -483,7 +520,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 style={styles.modalCloseBtn}
-                onClick={() => setShowAddChild(false)}
+                onClick={closeAddChildModal}
                 aria-label="Fermer"
               >
                 <X size={18} />
@@ -491,6 +528,28 @@ export default function Dashboard() {
             </div>
 
             <form onSubmit={handleAddChild} style={styles.modalForm}>
+              <div style={styles.photoPicker}>
+                <label style={styles.photoPickerLabel}>
+                  <Avatar
+                    src={photoPreview}
+                    letter={<Camera size={18} />}
+                    color="#ccfbf1"
+                    style={{ color: '#0f766e' }}
+                    size={64}
+                  />
+                  <span style={styles.photoPickerOverlay}>
+                    <Camera size={14} />
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <span style={styles.photoPickerHint}>Photo (optionnel)</span>
+              </div>
+
               <div style={styles.formRow}>
                 <div style={styles.field}>
                   <label style={styles.fieldLabel}>Prénom</label>
@@ -530,9 +589,9 @@ export default function Dashboard() {
               </p>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" style={{ ...styles.secondaryBtn, flex: 1, display: 'flex', justifyContent: 'center' }} onClick={() => setShowAddChild(false)}>Annuler</button>
-                <button type="submit" style={{ ...styles.primaryBtn, flex: 1, justifyContent: 'center' }}>
-                  <UserPlus size={16} /> Ajouter
+                <button type="button" style={{ ...styles.secondaryBtn, flex: 1, display: 'flex', justifyContent: 'center' }} onClick={closeAddChildModal}>Annuler</button>
+                <button type="submit" disabled={savingChild} style={{ ...styles.primaryBtn, flex: 1, justifyContent: 'center', opacity: savingChild ? 0.7 : 1 }}>
+                  <UserPlus size={16} /> {savingChild ? 'Ajout...' : 'Ajouter'}
                 </button>
               </div>
             </form>
@@ -577,11 +636,6 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 8
   },
   userInfo: { display: 'flex', alignItems: 'center', gap: 10, flex: 1 },
-  avatar: {
-    width: 36, height: 36, borderRadius: '50%', background: '#0f766e',
-    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontWeight: 700, fontSize: 14
-  },
   userName: { fontSize: 13, fontWeight: 600 },
   userRole: { fontSize: 11, color: '#5eead4' },
   logoutBtn: { background: 'transparent', color: '#64748b', padding: 8, borderRadius: 8 },
@@ -622,7 +676,6 @@ const styles = {
     border: '1.5px solid #ccfbf1', fontSize: 13, fontWeight: 500, color: '#134e4a'
   },
   childChipActive: { background: '#0f766e', color: 'white', borderColor: '#0f766e' },
-  chipDot: { width: 8, height: 8, borderRadius: '50%' },
   addChip: {
     width: 36, height: 36, borderRadius: '50%', background: 'white',
     border: '1.5px dashed #ccfbf1', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -635,10 +688,6 @@ const styles = {
     boxShadow: '0 4px 20px rgba(15,118,110,0.08)', display: 'flex', flexDirection: 'column', gap: 16
   },
   infoHeader: { display: 'flex', alignItems: 'center', gap: 12 },
-  childAvatar: {
-    width: 48, height: 48, borderRadius: '50%', color: 'white',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18
-  },
   childName: { fontSize: 16, fontWeight: 700 },
   trackerId: { fontSize: 11, color: '#94a3b8' },
   stats: { display: 'flex', gap: 16 },
@@ -657,11 +706,6 @@ const styles = {
   childCard: {
     background: 'white', borderRadius: 16, padding: 20, textAlign: 'center',
     boxShadow: '0 4px 16px rgba(15,118,110,0.06)', cursor: 'pointer', transition: 'transform 0.15s'
-  },
-  childAvatarLg: {
-    width: 56, height: 56, borderRadius: '50%', color: 'white',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontWeight: 700, fontSize: 22, margin: '0 auto 12px'
   },
   cardMeta: { fontSize: 11, color: '#94a3b8', marginTop: 4 },
   cardStats: { display: 'flex', justifyContent: 'center', gap: 12, marginTop: 10, fontSize: 12 },
@@ -697,6 +741,15 @@ const styles = {
   },
   modalForm: { display: 'flex', flexDirection: 'column', gap: 14, marginTop: 20 },
   modalHint: { fontSize: 12, color: '#94a3b8' },
+  photoPicker: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 4 },
+  photoPickerLabel: { position: 'relative', cursor: 'pointer', display: 'inline-block' },
+  photoPickerOverlay: {
+    position: 'absolute', bottom: -2, right: -2,
+    width: 22, height: 22, borderRadius: '50%', background: '#0f766e',
+    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    border: '2px solid white'
+  },
+  photoPickerHint: { fontSize: 12, color: '#94a3b8' },
   formRow: { display: 'flex', gap: 12 },
   field: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
   fieldLabel: { fontSize: 12, fontWeight: 600, color: '#134e4a' },
