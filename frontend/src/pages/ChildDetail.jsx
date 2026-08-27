@@ -44,12 +44,12 @@ export default function ChildDetail() {
   const getStatusColor = (s) => s === 'online' ? '#10b981' : s === 'low_battery' ? '#f59e0b' : '#ef4444'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0fdfa' }}>
+    <div style={{ minHeight: '100vh', background: '#eff6ff' }}>
       <header style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 20px', background: 'white', borderBottom: '1px solid #ccfbf1'
+        padding: '14px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#0f766e' }}>
+        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#1d4ed8' }}>
           <ArrowLeft size={22} />
         </button>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>{child.first_name} {child.last_name}</h2>
@@ -95,13 +95,13 @@ export default function ChildDetail() {
           </div>
 
           <div style={{ background: 'white', borderRadius: 16, padding: 20 }}>
-            <h4 style={{ marginBottom: 12, fontSize: 14, color: '#0f766e' }}>Infos</h4>
+            <h4 style={{ marginBottom: 12, fontSize: 14, color: '#1d4ed8' }}>Infos</h4>
             <p style={{ fontSize: 13, marginBottom: 6 }}>Date de naissance : {child.birth_date || '—'}</p>
             <p style={{ fontSize: 13 }}>Créé le : {format(new Date(child.created_at), 'dd/MM/yyyy')}</p>
           </div>
         </div>
 
-        <div style={{ height: 320, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 16px rgba(15,118,110,0.08)' }}>
+        <div style={{ height: 320, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 16px rgba(29, 78, 216,0.08)' }}>
           <MapView children={[child]} positions={position ? { [child.id]: position } : {}} selectedId={child.id} />
         </div>
 
@@ -116,13 +116,13 @@ export default function ChildDetail() {
               {history.map((p, i) => (
                 <div key={p.id} style={{
                   display: 'flex', justifyContent: 'space-between',
-                  padding: '10px 0', borderBottom: i < history.length - 1 ? '1px solid #f0fdfa' : 'none',
+                  padding: '10px 0', borderBottom: i < history.length - 1 ? '1px solid #eff6ff' : 'none',
                   fontSize: 13
                 }}>
                   <span style={{ fontFamily: 'monospace', color: '#64748b' }}>
                     {p.latitude.toFixed(5)}, {p.longitude.toFixed(5)}
                   </span>
-                  <span style={{ color: '#0f766e' }}>
+                  <span style={{ color: '#1d4ed8' }}>
                     {format(new Date(p.recorded_at), 'HH:mm:ss')}
                   </span>
                   <span>{p.battery}%</span>

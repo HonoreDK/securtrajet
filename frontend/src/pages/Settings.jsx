@@ -33,12 +33,12 @@ export default function Settings() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0fdfa' }}>
+    <div style={{ minHeight: '100vh', background: '#eff6ff' }}>
       <header style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 20px', background: 'white', borderBottom: '1px solid #ccfbf1'
+        padding: '14px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#0f766e' }}>
+        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#1d4ed8' }}>
           <ArrowLeft size={22} />
         </button>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>Paramètres</h2>
@@ -57,7 +57,7 @@ export default function Settings() {
               />
               <span style={{
                 position: 'absolute', bottom: -2, right: -2,
-                width: 24, height: 24, borderRadius: '50%', background: '#0f766e',
+                width: 24, height: 24, borderRadius: '50%', background: '#1d4ed8',
                 color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: '2px solid white'
               }}>
@@ -73,7 +73,7 @@ export default function Settings() {
             </label>
             <div>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Shield size={18} color="#0f766e" /> Mon compte
+                <Shield size={18} color="#1d4ed8" /> Mon compte
               </h3>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
                 {uploading ? 'Mise à jour de la photo…' : 'Cliquez sur la photo pour la changer'}
@@ -90,7 +90,7 @@ export default function Settings() {
             onClick={() => navigate('/admin')}
             style={{
               width: '100%', padding: '14px', borderRadius: 12, marginBottom: 12,
-              background: '#0f766e', color: 'white', fontWeight: 600, fontSize: 14, border: 'none'
+              background: '#1d4ed8', color: 'white', fontWeight: 600, fontSize: 14, border: 'none'
             }}
           >
             Tableau d'administration

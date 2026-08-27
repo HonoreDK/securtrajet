@@ -7,13 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon-32.png', 'favicon-64.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'SecurTrajet - Suivi Familial',
         short_name: 'SecurTrajet',
         description: 'Plateforme de suivi GPS et contrôle parental pour la sécurité des trajets familiaux',
-        theme_color: '#0f766e',
-        background_color: '#f0fdfa',
+        theme_color: '#1d4ed8',
+        background_color: '#eff6ff',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

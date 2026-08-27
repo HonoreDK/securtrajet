@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Shield } from 'lucide-react'
+import logoApp from '../assets/logo-app.jpg'
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -43,10 +43,8 @@ export default function Register() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.logoIcon}>
-            <Shield size={32} color="white" />
-          </div>
-          <h2 style={{ color: '#0f766e', marginBottom: 12 }}>Compte créé !</h2>
+          <img src={logoApp} alt="SecurTrajet" style={styles.logoIcon} />
+          <h2 style={{ color: '#1d4ed8', marginBottom: 12 }}>Compte créé !</h2>
           <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.5, marginBottom: 16 }}>
             Un email de confirmation vous a été envoyé (si activé).
             Votre compte est maintenant <strong>en attente de validation</strong> par un administrateur.
@@ -67,9 +65,7 @@ export default function Register() {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.logo}>
-          <div style={styles.logoIcon}>
-            <Shield size={32} color="white" />
-          </div>
+          <img src={logoApp} alt="SecurTrajet" style={styles.logoIcon} />
           <h1 style={styles.title}>Créer un compte</h1>
           <p style={styles.subtitle}>1 mois gratuit après validation</p>
         </div>
@@ -117,7 +113,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)',
+    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
     padding: 20
   },
   card: {
@@ -126,29 +122,28 @@ const styles = {
     padding: '40px 32px',
     width: '100%',
     maxWidth: 420,
-    boxShadow: '0 20px 60px rgba(15, 118, 110, 0.12)',
+    boxShadow: '0 20px 60px rgba(29, 78, 216, 0.12)',
     textAlign: 'center'
   },
   logo: { textAlign: 'center', marginBottom: 28 },
   logoIcon: {
-    width: 64, height: 64, borderRadius: '50%',
-    background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    margin: '0 auto 16px'
+    width: 76, height: 76, borderRadius: 20, objectFit: 'cover',
+    boxShadow: '0 4px 16px rgba(29,78,216,0.18)',
+    margin: '0 auto 16px', display: 'block'
   },
-  title: { fontSize: 24, fontWeight: 700, color: '#0f766e' },
-  subtitle: { color: '#5eead4', fontSize: 14, marginTop: 4 },
+  title: { fontSize: 24, fontWeight: 700, color: '#1d4ed8' },
+  subtitle: { color: '#93c5fd', fontSize: 14, marginTop: 4 },
   form: { display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' },
   row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   field: { display: 'flex', flexDirection: 'column', gap: 6 },
-  label: { fontSize: 13, fontWeight: 600, color: '#134e4a' },
+  label: { fontSize: 13, fontWeight: 600, color: '#1e3a8a' },
   input: {
     padding: '12px 16px', borderRadius: 12,
-    border: '1.5px solid #ccfbf1', fontSize: 15
+    border: '1.5px solid #dbeafe', fontSize: 15
   },
   button: {
     marginTop: 8, padding: '14px', borderRadius: 12,
-    background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+    background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)',
     color: 'white', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer', width: '100%'
   },
   error: {
@@ -156,5 +151,5 @@ const styles = {
     padding: '10px 14px', borderRadius: 10, fontSize: 13
   },
   footer: { textAlign: 'center', marginTop: 24, fontSize: 14, color: '#64748b' },
-  link: { color: '#0f766e', fontWeight: 600 }
+  link: { color: '#1d4ed8', fontWeight: 600 }
 }
