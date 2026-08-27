@@ -1,4 +1,4 @@
-export default function Avatar({ src, letter, color = '#0f766e', size = 40, fontSize, style }) {
+export default function Avatar({ src, letter, color = '#1d4ed8', size = 40, fontSize, style }) {
   const base = {
     width: size, height: size, borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',

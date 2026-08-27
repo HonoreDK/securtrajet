@@ -6,9 +6,10 @@ import MapView from '../components/MapView'
 import PaymentPanel from '../components/PaymentPanel'
 import Avatar from '../components/Avatar'
 import { uploadAvatar, fileExt } from '../lib/avatar'
+import logoApp from '../assets/logo-app.jpg'
 import {
   Map, Users, Bell, Settings, LogOut, Battery, Wifi, WifiOff,
-  Plus, Shield, AlertTriangle, Menu, X, ShieldCheck, MapPinOff, UserPlus,
+  Plus, AlertTriangle, Menu, X, ShieldCheck, MapPinOff, UserPlus,
   CreditCard, Clock, CheckCircle2, Camera
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
@@ -17,7 +18,7 @@ import { fr } from 'date-fns/locale'
 const GREETING_DATE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
 const SUB_STATUS = {
-  trial: { label: 'Essai gratuit', color: '#0f766e', bg: '#f0fdfa' },
+  trial: { label: 'Essai gratuit', color: '#1d4ed8', bg: '#eff6ff' },
   active: { label: 'Actif', color: '#10b981', bg: '#ecfdf5' },
   expired: { label: 'Expiré', color: '#ef4444', bg: '#fef2f2' },
   pending_approval: { label: 'En attente de validation', color: '#f59e0b', bg: '#fffbeb' }
@@ -156,9 +157,7 @@ export default function Dashboard() {
       <aside className="dash-sidebar" style={{ ...styles.sidebar, width: sidebarOpen ? 260 : 0, overflow: 'hidden' }}>
         <div style={styles.sidebarHeader}>
           <div style={styles.brand}>
-            <div style={styles.brandIcon}>
-              <Shield size={18} color="white" />
-            </div>
+            <img src={logoApp} alt="" style={styles.brandIcon} />
             <span>SecurTrajet</span>
           </div>
         </div>
@@ -241,7 +240,7 @@ export default function Dashboard() {
           <div style={styles.content}>
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>
-                <MapPinOff size={32} color="#0f766e" />
+                <MapPinOff size={32} color="#1d4ed8" />
               </div>
               <h3 style={styles.emptyTitle}>Aucun enfant suivi pour l'instant</h3>
               <p style={styles.emptyText}>
@@ -368,7 +367,7 @@ export default function Dashboard() {
             {children.length === 0 && (
               <div style={styles.emptyState}>
                 <div style={styles.emptyIcon}>
-                  <Users size={32} color="#0f766e" />
+                  <Users size={32} color="#1d4ed8" />
                 </div>
                 <h3 style={styles.emptyTitle}>Aucun enfant enregistré</h3>
                 <p style={styles.emptyText}>
@@ -442,7 +441,7 @@ export default function Dashboard() {
               <div style={styles.subCard}>
                 <div style={styles.subHeader}>
                   <div style={styles.subIcon}>
-                    <CreditCard size={24} color="#0f766e" />
+                    <CreditCard size={24} color="#1d4ed8" />
                   </div>
                   <div style={{ flex: 1 }}>
                     <h3 style={styles.subTitle}>Mon abonnement</h3>
@@ -455,7 +454,7 @@ export default function Dashboard() {
                 {subscription?.status === 'trial' && (
                   <div style={styles.subDetails}>
                     <div style={styles.subRow}>
-                      <Clock size={16} color="#0f766e" />
+                      <Clock size={16} color="#1d4ed8" />
                       <span><strong>{subscription.trialDaysLeft}</strong> jour{subscription.trialDaysLeft > 1 ? 's' : ''} restant{subscription.trialDaysLeft > 1 ? 's' : ''} d'essai gratuit</span>
                     </div>
                     {subscription.trialEndsAt && (
@@ -510,7 +509,7 @@ export default function Dashboard() {
             <div style={styles.modalHeader}>
               <div style={styles.modalHeaderLeft}>
                 <div style={styles.modalIcon}>
-                  <UserPlus size={20} color="#0f766e" />
+                  <UserPlus size={20} color="#1d4ed8" />
                 </div>
                 <div>
                   <h3 style={styles.modalTitle}>Ajouter un enfant</h3>
@@ -533,8 +532,8 @@ export default function Dashboard() {
                   <Avatar
                     src={photoPreview}
                     letter={<Camera size={18} />}
-                    color="#ccfbf1"
-                    style={{ color: '#0f766e' }}
+                    color="#dbeafe"
+                    style={{ color: '#1d4ed8' }}
                     size={64}
                   />
                   <span style={styles.photoPickerOverlay}>
@@ -603,55 +602,53 @@ export default function Dashboard() {
 }
 
 const styles = {
-  layout: { display: 'flex', minHeight: '100vh', background: '#f0fdfa' },
+  layout: { display: 'flex', minHeight: '100vh', background: '#eff6ff' },
   sidebar: {
     background: 'white',
-    borderRight: '1px solid #ccfbf1',
+    borderRight: '1px solid #dbeafe',
     display: 'flex',
     flexDirection: 'column',
     transition: 'width 0.25s ease',
     flexShrink: 0
   },
-  sidebarHeader: { padding: '20px 16px', borderBottom: '1px solid #f0fdfa' },
-  brand: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 18, color: '#0f766e' },
+  sidebarHeader: { padding: '20px 16px', borderBottom: '1px solid #eff6ff' },
+  brand: { display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, fontSize: 18, color: '#1d4ed8' },
   brandIcon: {
-    width: 34, height: 34, borderRadius: 10,
-    background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 34, height: 34, borderRadius: 10, objectFit: 'cover',
     flexShrink: 0
   },
   nav: { flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 4 },
   navItem: {
     display: 'flex', alignItems: 'center', gap: 10,
     padding: '12px 14px', borderRadius: 10, background: 'transparent',
-    color: '#134e4a', fontSize: 14, fontWeight: 500, textAlign: 'left', width: '100%'
+    color: '#1e3a8a', fontSize: 14, fontWeight: 500, textAlign: 'left', width: '100%'
   },
-  navActive: { background: '#f0fdfa', color: '#0f766e', fontWeight: 600 },
+  navActive: { background: '#eff6ff', color: '#1d4ed8', fontWeight: 600 },
   badge: {
     marginLeft: 'auto', background: '#ef4444', color: 'white',
     fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10
   },
   sidebarFooter: {
-    padding: 12, borderTop: '1px solid #f0fdfa',
+    padding: 12, borderTop: '1px solid #eff6ff',
     display: 'flex', alignItems: 'center', gap: 8
   },
   userInfo: { display: 'flex', alignItems: 'center', gap: 10, flex: 1 },
   userName: { fontSize: 13, fontWeight: 600 },
-  userRole: { fontSize: 11, color: '#5eead4' },
+  userRole: { fontSize: 11, color: '#93c5fd' },
   logoutBtn: { background: 'transparent', color: '#64748b', padding: 8, borderRadius: 8 },
   main: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 },
   header: {
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '12px 20px', background: 'white', borderBottom: '1px solid #ccfbf1'
+    padding: '12px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
   },
-  menuBtn: { background: 'transparent', color: '#0f766e', padding: 6 },
+  menuBtn: { background: 'transparent', color: '#1d4ed8', padding: 6 },
   greeting: { fontSize: 18, fontWeight: 600 },
   greetingSub: { fontSize: 12, color: '#94a3b8', marginTop: 2, textTransform: 'capitalize' },
   headerRight: { display: 'flex', alignItems: 'center', gap: 12 },
   liveBadge: {
     display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 11, fontWeight: 700, color: '#0f766e',
-    background: '#f0fdfa', padding: '4px 10px', borderRadius: 20
+    fontSize: 11, fontWeight: 700, color: '#1d4ed8',
+    background: '#eff6ff', padding: '4px 10px', borderRadius: 20
   },
   liveDot: {
     width: 8, height: 8, borderRadius: '50%', background: '#10b981',
@@ -661,51 +658,51 @@ const styles = {
   emptyState: {
     display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
     background: 'white', borderRadius: 20, padding: '48px 24px', gap: 6,
-    boxShadow: '0 4px 20px rgba(15,118,110,0.06)', maxWidth: 420, margin: '40px auto'
+    boxShadow: '0 4px 20px rgba(29, 78, 216,0.06)', maxWidth: 420, margin: '40px auto'
   },
   emptyIcon: {
-    width: 64, height: 64, borderRadius: '50%', background: '#f0fdfa',
+    width: 64, height: 64, borderRadius: '50%', background: '#eff6ff',
     display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10
   },
-  emptyTitle: { fontSize: 17, fontWeight: 700, color: '#134e4a' },
+  emptyTitle: { fontSize: 17, fontWeight: 700, color: '#1e3a8a' },
   emptyText: { fontSize: 13, color: '#64748b', lineHeight: 1.5, marginBottom: 12 },
   childrenBar: { display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
   childChip: {
     display: 'flex', alignItems: 'center', gap: 6,
     padding: '8px 14px', borderRadius: 20, background: 'white',
-    border: '1.5px solid #ccfbf1', fontSize: 13, fontWeight: 500, color: '#134e4a'
+    border: '1.5px solid #dbeafe', fontSize: 13, fontWeight: 500, color: '#1e3a8a'
   },
-  childChipActive: { background: '#0f766e', color: 'white', borderColor: '#0f766e' },
+  childChipActive: { background: '#1d4ed8', color: 'white', borderColor: '#1d4ed8' },
   addChip: {
     width: 36, height: 36, borderRadius: '50%', background: 'white',
-    border: '1.5px dashed #ccfbf1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#0f766e'
+    border: '1.5px dashed #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#1d4ed8'
   },
   mapSection: { display: 'flex', gap: 16, height: 'calc(100vh - 160px)', minHeight: 400 },
-  mapContainer: { flex: 1, borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 20px rgba(15,118,110,0.08)' },
+  mapContainer: { flex: 1, borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 20px rgba(29, 78, 216,0.08)' },
   infoPanel: {
     width: 280, background: 'white', borderRadius: 16, padding: 20,
-    boxShadow: '0 4px 20px rgba(15,118,110,0.08)', display: 'flex', flexDirection: 'column', gap: 16
+    boxShadow: '0 4px 20px rgba(29, 78, 216,0.08)', display: 'flex', flexDirection: 'column', gap: 16
   },
   infoHeader: { display: 'flex', alignItems: 'center', gap: 12 },
   childName: { fontSize: 16, fontWeight: 700 },
   trackerId: { fontSize: 11, color: '#94a3b8' },
   stats: { display: 'flex', gap: 16 },
   stat: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500 },
-  lastPos: { background: '#f0fdfa', borderRadius: 12, padding: 12 },
-  lastPosLabel: { fontSize: 11, color: '#5eead4', fontWeight: 600 },
+  lastPos: { background: '#eff6ff', borderRadius: 12, padding: 12 },
+  lastPosLabel: { fontSize: 11, color: '#93c5fd', fontWeight: 600 },
   lastPosTime: { fontSize: 14, fontWeight: 600, marginTop: 2 },
   coords: { fontSize: 12, color: '#64748b', marginTop: 4, fontFamily: 'monospace' },
-  speed: { fontSize: 12, color: '#0f766e', marginTop: 2 },
+  speed: { fontSize: 12, color: '#1d4ed8', marginTop: 2 },
   detailBtn: {
     marginTop: 'auto', padding: '12px', borderRadius: 10,
-    background: '#0f766e', color: 'white', fontWeight: 600, fontSize: 13
+    background: '#1d4ed8', color: 'white', fontWeight: 600, fontSize: 13
   },
   sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   childrenGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 },
   childCard: {
     background: 'white', borderRadius: 16, padding: 20, textAlign: 'center',
-    boxShadow: '0 4px 16px rgba(15,118,110,0.06)', cursor: 'pointer', transition: 'transform 0.15s'
+    boxShadow: '0 4px 16px rgba(29, 78, 216,0.06)', cursor: 'pointer', transition: 'transform 0.15s'
   },
   cardMeta: { fontSize: 11, color: '#94a3b8', marginTop: 4 },
   cardStats: { display: 'flex', justifyContent: 'center', gap: 12, marginTop: 10, fontSize: 12 },
@@ -731,10 +728,10 @@ const styles = {
   },
   modalHeaderLeft: { display: 'flex', alignItems: 'flex-start', gap: 12 },
   modalIcon: {
-    width: 40, height: 40, borderRadius: 12, background: '#f0fdfa',
+    width: 40, height: 40, borderRadius: 12, background: '#eff6ff',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
   },
-  modalTitle: { fontSize: 17, fontWeight: 700, color: '#134e4a' },
+  modalTitle: { fontSize: 17, fontWeight: 700, color: '#1e3a8a' },
   modalSubtitle: { fontSize: 12, color: '#64748b', marginTop: 2 },
   modalCloseBtn: {
     background: '#f8fafc', color: '#64748b', borderRadius: 8, padding: 6, flexShrink: 0
@@ -745,43 +742,43 @@ const styles = {
   photoPickerLabel: { position: 'relative', cursor: 'pointer', display: 'inline-block' },
   photoPickerOverlay: {
     position: 'absolute', bottom: -2, right: -2,
-    width: 22, height: 22, borderRadius: '50%', background: '#0f766e',
+    width: 22, height: 22, borderRadius: '50%', background: '#1d4ed8',
     color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
     border: '2px solid white'
   },
   photoPickerHint: { fontSize: 12, color: '#94a3b8' },
   formRow: { display: 'flex', gap: 12 },
   field: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
-  fieldLabel: { fontSize: 12, fontWeight: 600, color: '#134e4a' },
+  fieldLabel: { fontSize: 12, fontWeight: 600, color: '#1e3a8a' },
   input: {
-    padding: '12px 14px', borderRadius: 10, border: '1.5px solid #ccfbf1', fontSize: 14, width: '100%'
+    padding: '12px 14px', borderRadius: 10, border: '1.5px solid #dbeafe', fontSize: 14, width: '100%'
   },
   primaryBtn: {
     display: 'flex', alignItems: 'center', gap: 6,
-    padding: '10px 16px', borderRadius: 10, background: '#0f766e',
+    padding: '10px 16px', borderRadius: 10, background: '#1d4ed8',
     color: 'white', fontWeight: 600, fontSize: 13
   },
   secondaryBtn: {
-    padding: '10px 16px', borderRadius: 10, background: '#f0fdfa',
-    color: '#0f766e', fontWeight: 600, fontSize: 13
+    padding: '10px 16px', borderRadius: 10, background: '#eff6ff',
+    color: '#1d4ed8', fontWeight: 600, fontSize: 13
   },
   subCard: {
     background: 'white', borderRadius: 20, padding: 28, maxWidth: 480,
-    boxShadow: '0 4px 20px rgba(15,118,110,0.08)'
+    boxShadow: '0 4px 20px rgba(29, 78, 216,0.08)'
   },
   subHeader: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 },
   subIcon: {
-    width: 48, height: 48, borderRadius: 14, background: '#f0fdfa',
+    width: 48, height: 48, borderRadius: 14, background: '#eff6ff',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
   },
-  subTitle: { fontSize: 17, fontWeight: 700, color: '#134e4a', marginBottom: 6 },
+  subTitle: { fontSize: 17, fontWeight: 700, color: '#1e3a8a', marginBottom: 6 },
   subStatusPill: {
     display: 'inline-block', padding: '3px 10px', borderRadius: 20,
     fontSize: 12, fontWeight: 700
   },
-  subDetails: { paddingTop: 16, borderTop: '1px solid #f0fdfa' },
+  subDetails: { paddingTop: 16, borderTop: '1px solid #eff6ff' },
   subRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#334155' },
   subMuted: { fontSize: 12, color: '#94a3b8', marginTop: 6, marginLeft: 24 },
-  subPayZone: { marginTop: 20, paddingTop: 20, borderTop: '1px solid #f0fdfa' },
-  subPayTitle: { fontSize: 13, fontWeight: 600, color: '#134e4a', marginBottom: 4 }
+  subPayZone: { marginTop: 20, paddingTop: 20, borderTop: '1px solid #eff6ff' },
+  subPayTitle: { fontSize: 13, fontWeight: 600, color: '#1e3a8a', marginBottom: 4 }
 }

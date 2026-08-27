@@ -38,7 +38,7 @@ export default function SubscriptionGate({ children }) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <CreditCard size={48} color="#0f766e" />
+          <CreditCard size={48} color="#1d4ed8" />
           <h2 style={styles.title}>Abonnement requis</h2>
           <p style={styles.text}>
             Votre période d'essai gratuite de 1 mois est terminée.
@@ -82,7 +82,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)',
+    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
     padding: 20
   },
   card: {
@@ -92,19 +92,19 @@ const styles = {
     maxWidth: 420,
     width: '100%',
     textAlign: 'center',
-    boxShadow: '0 20px 60px rgba(15, 118, 110, 0.12)'
+    boxShadow: '0 20px 60px rgba(29, 78, 216, 0.12)'
   },
-  title: { fontSize: 22, fontWeight: 700, color: '#0f766e', margin: '16px 0 12px' },
+  title: { fontSize: 22, fontWeight: 700, color: '#1d4ed8', margin: '16px 0 12px' },
   text: { fontSize: 15, color: '#334155', lineHeight: 1.5 },
   sub: { fontSize: 13, color: '#64748b', marginTop: 12 },
-  priceBox: { margin: '24px 0', padding: '16px', background: '#f0fdfa', borderRadius: 16 },
-  price: { fontSize: 36, fontWeight: 800, color: '#0f766e' },
-  currency: { display: 'block', fontSize: 14, color: '#5eead4', marginTop: 4 },
+  priceBox: { margin: '24px 0', padding: '16px', background: '#eff6ff', borderRadius: 16 },
+  price: { fontSize: 36, fontWeight: 800, color: '#1d4ed8' },
+  currency: { display: 'block', fontSize: 14, color: '#93c5fd', marginTop: 4 },
   button: {
     width: '100%',
     padding: '14px',
     borderRadius: 12,
-    background: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+    background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)',
     color: 'white',
     fontWeight: 600,
     fontSize: 15,
@@ -112,7 +112,7 @@ const styles = {
     cursor: 'pointer'
   },
   trialBanner: {
-    background: '#0f766e',
+    background: '#1d4ed8',
     color: 'white',
     padding: '8px 16px',
     display: 'flex',

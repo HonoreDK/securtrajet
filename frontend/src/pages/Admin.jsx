@@ -64,15 +64,15 @@ export default function Admin() {
   if (!profile || profile.role !== 'admin') return null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0fdfa' }}>
+    <div style={{ minHeight: '100vh', background: '#eff6ff' }}>
       <header style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 20px', background: 'white', borderBottom: '1px solid #ccfbf1'
+        padding: '14px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#0f766e' }}>
+        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#1d4ed8' }}>
           <ArrowLeft size={22} />
         </button>
-        <Shield size={20} color="#0f766e" />
+        <Shield size={20} color="#1d4ed8" />
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>Administration</h2>
       </header>
 
@@ -85,10 +85,10 @@ export default function Admin() {
               <div key={u.id} style={{
                 background: 'white', borderRadius: 14, padding: 16,
                 display: 'flex', alignItems: 'center', gap: 14,
-                boxShadow: '0 2px 10px rgba(15,118,110,0.06)'
+                boxShadow: '0 2px 10px rgba(29, 78, 216,0.06)'
               }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: '50%', background: '#0f766e',
+                  width: 44, height: 44, borderRadius: '50%', background: '#1d4ed8',
                   color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                   <User size={20} />
@@ -96,7 +96,7 @@ export default function Admin() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600 }}>
                     {u.first_name} {u.last_name}
-                    {u.role === 'admin' && <span style={{ marginLeft: 8, fontSize: 11, background: '#0f766e', color: 'white', padding: '2px 8px', borderRadius: 8 }}>ADMIN</span>}
+                    {u.role === 'admin' && <span style={{ marginLeft: 8, fontSize: 11, background: '#1d4ed8', color: 'white', padding: '2px 8px', borderRadius: 8 }}>ADMIN</span>}
                   </div>
                   <div style={{ fontSize: 13, color: '#64748b' }}>{u.email}</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>
@@ -121,8 +121,8 @@ export default function Admin() {
                   <button
                     onClick={() => startEdit(u)}
                     style={{
-                      padding: '8px 12px', borderRadius: 8, background: '#f0fdfa',
-                      color: '#0f766e', fontSize: 12, fontWeight: 600, border: 'none'
+                      padding: '8px 12px', borderRadius: 8, background: '#eff6ff',
+                      color: '#1d4ed8', fontSize: 12, fontWeight: 600, border: 'none'
                     }}
                   >
                     Modifier
@@ -175,7 +175,7 @@ export default function Admin() {
               </select>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setEditUser(null)} style={{ ...btnStyle, background: '#f1f5f9', color: '#334155' }}>Annuler</button>
-                <button onClick={saveEdit} style={{ ...btnStyle, background: '#0f766e', color: 'white' }}>Enregistrer</button>
+                <button onClick={saveEdit} style={{ ...btnStyle, background: '#1d4ed8', color: 'white' }}>Enregistrer</button>
               </div>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function Admin() {
 }
 
 const inputStyle = {
-  padding: '12px 14px', borderRadius: 10, border: '1.5px solid #ccfbf1', fontSize: 14
+  padding: '12px 14px', borderRadius: 10, border: '1.5px solid #dbeafe', fontSize: 14
 }
 const btnStyle = {
   flex: 1, padding: '12px', borderRadius: 10, fontWeight: 600, fontSize: 13, border: 'none', cursor: 'pointer'

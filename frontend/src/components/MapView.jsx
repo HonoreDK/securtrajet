@@ -104,8 +104,8 @@ export default function MapView({ children, positions = {}, geofences = [], sele
           center={[g.center_lat, g.center_lng]}
           radius={g.radius_meters}
           pathOptions={{
-            color: '#0f766e',
-            fillColor: '#14b8a6',
+            color: '#1d4ed8',
+            fillColor: '#3b82f6',
             fillOpacity: 0.12,
             weight: 2
           }}

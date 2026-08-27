@@ -133,7 +133,7 @@ const styles = {
   },
   phoneInput: {
     padding: '12px 16px', borderRadius: 12,
-    border: '1.5px solid #ccfbf1', fontSize: 15
+    border: '1.5px solid #dbeafe', fontSize: 15
   },
   errorText: { color: '#ef4444', fontSize: 13, margin: 0 },
   processing: {
