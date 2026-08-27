@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
+import Avatar from '../components/Avatar'
 import { ArrowLeft, Battery, Wifi, WifiOff, Clock } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -60,14 +61,13 @@ export default function ChildDetail() {
         }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: getStatusColor(child.status), color: 'white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: 22
-              }}>
-                {child.first_name.charAt(0)}
-              </div>
+              <Avatar
+                src={child.photo_url}
+                letter={child.first_name.charAt(0)}
+                color={getStatusColor(child.status)}
+                size={56}
+                fontSize={22}
+              />
               <div>
                 <h3 style={{ fontSize: 18 }}>{child.first_name}</h3>
                 <p style={{ fontSize: 12, color: '#94a3b8' }}>{child.tracker_id}</p>

@@ -17,6 +17,7 @@ CREATE TABLE public.profiles (
   last_name TEXT,
   role TEXT NOT NULL DEFAULT 'parent' CHECK (role IN ('parent', 'admin')),
   phone TEXT,
+  avatar_url TEXT,
   -- Abonnement
   trial_ends_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   subscription_status TEXT NOT NULL DEFAULT 'trial' 
@@ -328,6 +329,29 @@ SELECT
   END AS trial_days_left
 FROM public.profiles
 WHERE id = auth.uid();
+
+-- ============================================================
+-- 10. Photos de profil (parents + enfants) via Supabase Storage
+-- ============================================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Public read avatars"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'avatars');
+
+CREATE POLICY "Parents upload their own avatars"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Parents update their own avatars"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Parents delete their own avatars"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ============================================================
 -- FIN - Instructions :

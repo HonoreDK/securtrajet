@@ -10,16 +10,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
 })
 
-function createAvatarIcon(letter, color) {
+function createAvatarIcon(letter, color, photoUrl) {
+  const inner = photoUrl
+    ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;" />`
+    : letter
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
       width:36px;height:36px;border-radius:50%;
       background:${color};color:white;font-weight:700;
       display:flex;align-items:center;justify-content:center;
-      font-size:14px;border:3px solid white;
+      font-size:14px;border:3px solid white;overflow:hidden;
       box-shadow:0 2px 8px rgba(0,0,0,0.25);
-    ">${letter}</div>`,
+    ">${inner}</div>`,
     iconSize: [36, 36],
     iconAnchor: [18, 18]
   })
@@ -52,6 +55,7 @@ export default function MapView({ children, positions = {}, geofences = [], sele
         lng: pos.longitude,
         color,
         letter: child.first_name.charAt(0).toUpperCase(),
+        photoUrl: child.photo_url,
         battery: child.battery,
         status: child.status
       }
@@ -114,7 +118,7 @@ export default function MapView({ children, positions = {}, geofences = [], sele
         <Marker
           key={m.id}
           position={[m.lat, m.lng]}
-          icon={createAvatarIcon(m.letter, m.color)}
+          icon={createAvatarIcon(m.letter, m.color, m.photoUrl)}
           eventHandlers={{
             click: () => onSelect?.(m.id)
           }}

@@ -1,14 +1,35 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ArrowLeft, Shield, LogOut } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { uploadAvatar, fileExt } from '../lib/avatar'
+import Avatar from '../components/Avatar'
+import { ArrowLeft, Shield, LogOut, Camera } from 'lucide-react'
 
 export default function Settings() {
-  const { user, profile, logout } = useAuth()
+  const { user, profile, logout, refreshProfile } = useAuth()
   const navigate = useNavigate()
+  const [uploading, setUploading] = useState(false)
 
   const handleLogout = async () => {
     await logout()
     navigate('/login')
+  }
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const url = await uploadAvatar(file, `${user.id}/parent.${fileExt(file)}`)
+      const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+      if (error) throw error
+      await refreshProfile()
+    } catch (err) {
+      alert(err.message || "Impossible de mettre à jour la photo, réessayez.")
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -25,9 +46,39 @@ export default function Settings() {
 
       <div style={{ padding: 20, maxWidth: 500, margin: '0 auto' }}>
         <div style={{ background: 'white', borderRadius: 16, padding: 24, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <Shield size={24} color="#0f766e" />
-            <h3>Mon compte</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+            <label style={{ position: 'relative', cursor: 'pointer', display: 'inline-block' }}>
+              <Avatar
+                src={profile?.avatar_url}
+                letter={profile?.first_name?.charAt(0).toUpperCase() || '?'}
+                size={64}
+                fontSize={24}
+                style={{ opacity: uploading ? 0.5 : 1 }}
+              />
+              <span style={{
+                position: 'absolute', bottom: -2, right: -2,
+                width: 24, height: 24, borderRadius: '50%', background: '#0f766e',
+                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid white'
+              }}>
+                <Camera size={13} />
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
+            <div>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Shield size={18} color="#0f766e" /> Mon compte
+              </h3>
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                {uploading ? 'Mise à jour de la photo…' : 'Cliquez sur la photo pour la changer'}
+              </p>
+            </div>
           </div>
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Nom :</strong> {profile?.first_name} {profile?.last_name}</p>
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Email :</strong> {user?.email}</p>
