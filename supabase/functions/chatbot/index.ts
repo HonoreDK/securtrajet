@@ -5,7 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
 const MAX_HISTORY = 12; // derniers messages envoyés au modèle (limite le coût/latence)
 
 const SYSTEM_PROMPT = `Tu es l'assistant intégré de SecurTrajet, une application de suivi familial GPS pour parents au Cameroun.
