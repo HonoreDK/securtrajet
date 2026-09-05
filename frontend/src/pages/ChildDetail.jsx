@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
 import Avatar from '../components/Avatar'
-import { ArrowLeft, Battery, Wifi, WifiOff, Clock } from 'lucide-react'
+import { ArrowLeft, Battery, Wifi, WifiOff, Clock, Radio, Check } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -14,6 +14,9 @@ export default function ChildDetail() {
   const { user } = useAuth()
   const [child, setChild] = useState(null)
   const [history, setHistory] = useState([])
+  const [imeiInput, setImeiInput] = useState('')
+  const [savingImei, setSavingImei] = useState(false)
+  const [imeiSaved, setImeiSaved] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -26,6 +29,7 @@ export default function ChildDetail() {
         return
       }
       setChild(c)
+      setImeiInput(c.qxgps_imei || '')
       const { data: h } = await supabase
         .from('positions')
         .select('*')
@@ -42,6 +46,22 @@ export default function ChildDetail() {
 
   const position = history[0] || null
   const getStatusColor = (s) => s === 'online' ? '#10b981' : s === 'low_battery' ? '#f59e0b' : '#ef4444'
+
+  const saveImei = async () => {
+    setSavingImei(true)
+    setImeiSaved(false)
+    try {
+      const value = imeiInput.trim() || null
+      const { error } = await supabase.from('children').update({ qxgps_imei: value }).eq('id', child.id)
+      if (error) throw error
+      setChild({ ...child, qxgps_imei: value })
+      setImeiSaved(true)
+    } catch (err) {
+      alert(err.message || "Impossible d'enregistrer l'IMEI, réessaie.")
+    } finally {
+      setSavingImei(false)
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#eff6ff' }}>
@@ -97,7 +117,34 @@ export default function ChildDetail() {
           <div style={{ background: 'white', borderRadius: 16, padding: 20 }}>
             <h4 style={{ marginBottom: 12, fontSize: 14, color: '#1d4ed8' }}>Infos</h4>
             <p style={{ fontSize: 13, marginBottom: 6 }}>Date de naissance : {child.birth_date || '—'}</p>
-            <p style={{ fontSize: 13 }}>Créé le : {format(new Date(child.created_at), 'dd/MM/yyyy')}</p>
+            <p style={{ fontSize: 13, marginBottom: 14 }}>Créé le : {format(new Date(child.created_at), 'dd/MM/yyyy')}</p>
+
+            <h4 style={{ marginBottom: 8, fontSize: 14, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Radio size={15} /> Traceur GPS physique (QXGPS)
+            </h4>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>
+              Renseigne l'IMEI du boîtier QXGPS pour relier sa position réelle à cet enfant.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={imeiInput}
+                onChange={e => { setImeiInput(e.target.value); setImeiSaved(false) }}
+                placeholder="ex : 865012345678901"
+                style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: '1.5px solid #dbeafe', fontSize: 13 }}
+              />
+              <button
+                onClick={saveImei}
+                disabled={savingImei}
+                style={{
+                  padding: '9px 14px', borderRadius: 10, background: imeiSaved ? '#10b981' : '#1d4ed8',
+                  color: 'white', fontWeight: 600, fontSize: 12, border: 'none', display: 'flex', alignItems: 'center', gap: 6,
+                  opacity: savingImei ? 0.7 : 1
+                }}
+              >
+                {imeiSaved ? <Check size={14} /> : null}
+                {savingImei ? '...' : imeiSaved ? 'Lié' : 'Lier'}
+              </button>
+            </div>
           </div>
         </div>
 
