@@ -66,6 +66,7 @@ CREATE TABLE public.children (
   birth_date DATE,
   photo_url TEXT,
   tracker_id TEXT UNIQUE,
+  qxgps_imei TEXT UNIQUE, -- IMEI du traceur physique QXGPS associé (optionnel)
   battery INTEGER DEFAULT 100,
   status TEXT DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'low_battery')),
   last_seen_at TIMESTAMPTZ,
