@@ -5,12 +5,13 @@ import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
 import PaymentPanel from '../components/PaymentPanel'
 import Avatar from '../components/Avatar'
+import GeofenceModal from '../components/GeofenceModal'
 import { uploadAvatar, fileExt } from '../lib/avatar'
 import logoApp from '../assets/logo-app.jpg'
 import {
   Map, Users, Bell, Settings, LogOut, Battery, Wifi, WifiOff,
-  Plus, AlertTriangle, Menu, X, ShieldCheck, MapPinOff, UserPlus,
-  CreditCard, Clock, CheckCircle2, Camera
+  Plus, AlertTriangle, Menu, X, ShieldCheck, Shield, MapPinOff, UserPlus,
+  CreditCard, Clock, CheckCircle2, Camera, Pencil, Trash2
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [savingChild, setSavingChild] = useState(false)
+  const [geofenceModal, setGeofenceModal] = useState(null) // null = fermé, {} = création, {...} = édition
   const [activeTab, setActiveTab] = useState('carte')
 
   const refresh = useCallback(async () => {
@@ -67,6 +69,7 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'children', filter: `parent_id=eq.${user.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'positions', filter: `parent_id=eq.${user.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts', filter: `parent_id=eq.${user.id}` }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'geofences', filter: `parent_id=eq.${user.id}` }, refresh)
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [user, refresh])
@@ -135,6 +138,17 @@ export default function Dashboard() {
     refresh()
   }
 
+  const toggleGeofenceActive = async (geofence) => {
+    await supabase.from('geofences').update({ is_active: !geofence.is_active }).eq('id', geofence.id)
+    refresh()
+  }
+
+  const deleteGeofence = async (geofenceId) => {
+    if (!confirm('Supprimer cette zone de sécurité ?')) return
+    await supabase.from('geofences').delete().eq('id', geofenceId)
+    refresh()
+  }
+
   const unreadAlerts = alerts.filter(a => !a.is_read).length
   const currentChild = children.find(c => c.id === selectedChild)
   const position = currentChild ? positions[currentChild.id] : null
@@ -174,6 +188,12 @@ export default function Dashboard() {
             onClick={() => selectTab('enfants')}
           >
             <Users size={18} /> Mes enfants
+          </button>
+          <button
+            style={{ ...styles.navItem, ...(activeTab === 'zones' ? styles.navActive : {}) }}
+            onClick={() => selectTab('zones')}
+          >
+            <Shield size={18} /> Zones de sécurité
           </button>
           <button
             style={{ ...styles.navItem, ...(activeTab === 'alertes' ? styles.navActive : {}) }}
@@ -406,6 +426,69 @@ export default function Dashboard() {
           </div>
         )}
 
+        {activeTab === 'zones' && (
+          <div style={styles.content} className="fade-in">
+            <div style={styles.sectionHeader}>
+              <h3>Zones de sécurité</h3>
+              <button style={styles.primaryBtn} onClick={() => setGeofenceModal({})}>
+                <Plus size={16} /> Ajouter une zone
+              </button>
+            </div>
+
+            {geofences.length === 0 && (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyIcon}>
+                  <Shield size={32} color="#1d4ed8" />
+                </div>
+                <h3 style={styles.emptyTitle}>Aucune zone définie</h3>
+                <p style={styles.emptyText}>
+                  Crée une zone (école, maison...) pour être alerté quand un enfant y entre ou en sort.
+                </p>
+              </div>
+            )}
+
+            <div style={styles.geofenceList}>
+              {geofences.map(g => {
+                const child = children.find(c => c.id === g.child_id)
+                return (
+                  <div key={g.id} style={styles.geofenceCard}>
+                    <div style={styles.geofenceIcon}>
+                      <Shield size={20} color={g.is_active ? '#1d4ed8' : '#94a3b8'} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={styles.geofenceName}>{g.name}</div>
+                      <div style={styles.geofenceMeta}>
+                        {child ? `${child.first_name} ${child.last_name}` : 'Tous les enfants'} • {g.radius_meters} m
+                      </div>
+                      <div style={styles.geofenceBadges}>
+                        {g.alert_on_enter && <span style={styles.geofenceBadge}>Entrée</span>}
+                        {g.alert_on_exit && <span style={styles.geofenceBadge}>Sortie</span>}
+                        {!g.is_active && <span style={{ ...styles.geofenceBadge, color: '#94a3b8', background: '#f1f5f9' }}>Désactivée</span>}
+                      </div>
+                    </div>
+                    <div style={styles.geofenceActions}>
+                      <button
+                        type="button"
+                        style={styles.iconBtn}
+                        title={g.is_active ? 'Désactiver' : 'Activer'}
+                        onClick={() => toggleGeofenceActive(g)}
+                      >
+                        {g.is_active ? <CheckCircle2 size={16} color="#10b981" /> : <X size={16} color="#94a3b8" />}
+                      </button>
+                      <button type="button" style={styles.iconBtn} title="Modifier" onClick={() => setGeofenceModal(g)}>
+                        <Pencil size={16} color="#1d4ed8" />
+                      </button>
+                      <button type="button" style={styles.iconBtn} title="Supprimer" onClick={() => deleteGeofence(g.id)}>
+                        <Trash2 size={16} color="#ef4444" />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'alertes' && (
           <div style={styles.content} className="fade-in">
             <h3 style={{ marginBottom: 16 }}>Alertes</h3>
@@ -597,6 +680,18 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Modal Zone de sécurité */}
+      {geofenceModal && (
+        <GeofenceModal
+          parentId={user.id}
+          children={children}
+          geofence={geofenceModal.id ? geofenceModal : null}
+          defaultCenter={position ? [position.latitude, position.longitude] : null}
+          onClose={() => setGeofenceModal(null)}
+          onSaved={() => { setGeofenceModal(null); refresh() }}
+        />
+      )}
     </div>
   )
 }
@@ -780,5 +875,26 @@ const styles = {
   subRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#334155' },
   subMuted: { fontSize: 12, color: '#94a3b8', marginTop: 6, marginLeft: 24 },
   subPayZone: { marginTop: 20, paddingTop: 20, borderTop: '1px solid #eff6ff' },
-  subPayTitle: { fontSize: 13, fontWeight: 600, color: '#1e3a8a', marginBottom: 4 }
+  subPayTitle: { fontSize: 13, fontWeight: 600, color: '#1e3a8a', marginBottom: 4 },
+  geofenceList: { display: 'flex', flexDirection: 'column', gap: 10 },
+  geofenceCard: {
+    display: 'flex', alignItems: 'center', gap: 14,
+    background: 'white', padding: 16, borderRadius: 14,
+    boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
+  },
+  geofenceIcon: {
+    width: 40, height: 40, borderRadius: 12, background: '#eff6ff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+  },
+  geofenceName: { fontSize: 14, fontWeight: 700, color: '#1e293b' },
+  geofenceMeta: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  geofenceBadges: { display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  geofenceBadge: {
+    fontSize: 11, fontWeight: 600, color: '#1d4ed8', background: '#eff6ff',
+    padding: '2px 8px', borderRadius: 8
+  },
+  geofenceActions: { display: 'flex', gap: 4, flexShrink: 0 },
+  iconBtn: {
+    background: 'transparent', border: 'none', cursor: 'pointer', padding: 8, borderRadius: 8
+  }
 }

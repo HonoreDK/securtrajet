@@ -38,7 +38,7 @@ export default function Settings() {
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '14px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#1d4ed8' }}>
+        <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', color: '#1d4ed8' }}>
           <ArrowLeft size={22} />
         </button>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>Paramètres</h2>

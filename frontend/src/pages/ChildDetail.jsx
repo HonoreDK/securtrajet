@@ -25,7 +25,7 @@ export default function ChildDetail() {
       const { data: c } = await supabase.from('children').select('*').eq('id', id).eq('parent_id', user.id).single()
       if (cancelled) return
       if (!c) {
-        navigate('/')
+        navigate('/dashboard')
         return
       }
       setChild(c)
@@ -69,7 +69,7 @@ export default function ChildDetail() {
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '14px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#1d4ed8' }}>
+        <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', color: '#1d4ed8' }}>
           <ArrowLeft size={22} />
         </button>
         <h2 style={{ fontSize: 18, fontWeight: 600 }}>{child.first_name} {child.last_name}</h2>
