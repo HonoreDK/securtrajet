@@ -14,7 +14,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (profile && profile.role !== 'admin') {
-      navigate('/')
+      navigate('/dashboard')
       return
     }
     loadUsers()
@@ -69,7 +69,7 @@ export default function Admin() {
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '14px 20px', background: 'white', borderBottom: '1px solid #dbeafe'
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#1d4ed8' }}>
+        <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', color: '#1d4ed8' }}>
           <ArrowLeft size={22} />
         </button>
         <Shield size={20} color="#1d4ed8" />
