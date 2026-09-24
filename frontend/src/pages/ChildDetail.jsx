@@ -17,6 +17,7 @@ export default function ChildDetail() {
   const [imeiInput, setImeiInput] = useState('')
   const [savingImei, setSavingImei] = useState(false)
   const [imeiSaved, setImeiSaved] = useState(false)
+  const [imeiError, setImeiError] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -50,6 +51,7 @@ export default function ChildDetail() {
   const saveImei = async () => {
     setSavingImei(true)
     setImeiSaved(false)
+    setImeiError('')
     try {
       const value = imeiInput.trim() || null
       const { error } = await supabase.from('children').update({ qxgps_imei: value }).eq('id', child.id)
@@ -58,9 +60,9 @@ export default function ChildDetail() {
       setImeiSaved(true)
     } catch (err) {
       if (err.code === '23505') {
-        alert('Ce traceur (IMEI) est déjà associé à un autre enfant. Un même traceur ne peut suivre qu\'un seul enfant à la fois.')
+        setImeiError('Ce traceur est déjà associé à un autre enfant — un même traceur ne peut suivre qu\'un seul enfant à la fois.')
       } else {
-        alert(err.message || "Impossible d'enregistrer l'IMEI, réessaie.")
+        setImeiError(err.message || "Impossible d'enregistrer l'IMEI, réessaie.")
       }
     } finally {
       setSavingImei(false)
@@ -132,9 +134,12 @@ export default function ChildDetail() {
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 value={imeiInput}
-                onChange={e => { setImeiInput(e.target.value); setImeiSaved(false) }}
+                onChange={e => { setImeiInput(e.target.value); setImeiSaved(false); setImeiError('') }}
                 placeholder="ex : 865012345678901"
-                style={{ flex: 1, padding: '9px 12px', borderRadius: 10, border: '1.5px solid #dbeafe', fontSize: 13 }}
+                style={{
+                  flex: 1, padding: '9px 12px', borderRadius: 10, fontSize: 13,
+                  border: `1.5px solid ${imeiError ? '#ef4444' : '#dbeafe'}`
+                }}
               />
               <button
                 onClick={saveImei}
@@ -149,6 +154,9 @@ export default function ChildDetail() {
                 {savingImei ? '...' : imeiSaved ? 'Lié' : 'Lier'}
               </button>
             </div>
+            {imeiError && (
+              <p style={{ fontSize: 11, color: '#ef4444', marginTop: 8, lineHeight: 1.4 }}>{imeiError}</p>
+            )}
           </div>
         </div>
 

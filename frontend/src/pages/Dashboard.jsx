@@ -71,7 +71,12 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts', filter: `parent_id=eq.${user.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'geofences', filter: `parent_id=eq.${user.id}` }, refresh)
       .subscribe()
-    return () => supabase.removeChannel(channel)
+    // Filet de sécurité en plus du temps réel, au cas où un évènement serait manqué
+    const interval = setInterval(refresh, 5000)
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(interval)
+    }
   }, [user, refresh])
 
   useEffect(() => {
