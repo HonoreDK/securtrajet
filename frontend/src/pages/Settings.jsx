@@ -1,15 +1,49 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { uploadAvatar, fileExt } from '../lib/avatar'
+import { isPushSupported, getPushPermissionState, isSubscribedToPush, subscribeToPush, unsubscribeFromPush } from '../lib/push'
 import Avatar from '../components/Avatar'
-import { ArrowLeft, Shield, LogOut, Camera } from 'lucide-react'
+import { ArrowLeft, Shield, LogOut, Camera, Bell, BellOff } from 'lucide-react'
 
 export default function Settings() {
   const { user, profile, logout, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [uploading, setUploading] = useState(false)
+  const [pushState, setPushState] = useState('checking') // checking | unsupported | denied | off | on
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushError, setPushError] = useState('')
+
+  useEffect(() => {
+    const check = async () => {
+      if (!isPushSupported()) { setPushState('unsupported'); return }
+      const permission = await getPushPermissionState()
+      if (permission === 'denied') { setPushState('denied'); return }
+      const subscribed = await isSubscribedToPush()
+      setPushState(subscribed ? 'on' : 'off')
+    }
+    check()
+  }, [])
+
+  const togglePush = async () => {
+    setPushBusy(true)
+    setPushError('')
+    try {
+      if (pushState === 'on') {
+        await unsubscribeFromPush()
+        setPushState('off')
+      } else {
+        await subscribeToPush(user.id)
+        setPushState('on')
+      }
+    } catch (err) {
+      setPushError(err.message || "Impossible d'activer les notifications.")
+      if (Notification.permission === 'denied') setPushState('denied')
+    } finally {
+      setPushBusy(false)
+    }
+  }
 
   const handleLogout = async () => {
     await logout()
@@ -83,6 +117,46 @@ export default function Settings() {
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Nom :</strong> {profile?.first_name} {profile?.last_name}</p>
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Email :</strong> {user?.email}</p>
           <p style={{ fontSize: 14 }}><strong>Rôle :</strong> {profile?.role === 'admin' ? 'Administrateur' : 'Parent'}</p>
+        </div>
+
+        <div style={{ background: 'white', borderRadius: 16, padding: 24, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: pushState === 'unsupported' || pushState === 'denied' || pushError ? 10 : 0 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12, background: '#eff6ff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+            }}>
+              {pushState === 'on' ? <Bell size={18} color="#1d4ed8" /> : <BellOff size={18} color="#94a3b8" />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700 }}>Notifications push</h3>
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                Reçois les alertes même quand l'app est fermée
+              </p>
+            </div>
+            {pushState !== 'unsupported' && pushState !== 'denied' && pushState !== 'checking' && (
+              <button
+                onClick={togglePush}
+                disabled={pushBusy}
+                style={{
+                  padding: '8px 14px', borderRadius: 10, fontWeight: 600, fontSize: 12, border: 'none',
+                  background: pushState === 'on' ? '#eff6ff' : '#1d4ed8',
+                  color: pushState === 'on' ? '#1d4ed8' : 'white',
+                  opacity: pushBusy ? 0.7 : 1
+                }}
+              >
+                {pushBusy ? '...' : pushState === 'on' ? 'Désactiver' : 'Activer'}
+              </button>
+            )}
+          </div>
+          {pushState === 'unsupported' && (
+            <p style={{ fontSize: 12, color: '#94a3b8' }}>Non disponible sur ce navigateur/appareil.</p>
+          )}
+          {pushState === 'denied' && (
+            <p style={{ fontSize: 12, color: '#ef4444' }}>
+              Notifications bloquées dans les réglages de ton navigateur — autorise-les puis recharge la page.
+            </p>
+          )}
+          {pushError && <p style={{ fontSize: 12, color: '#ef4444' }}>{pushError}</p>}
         </div>
 
         {profile?.role === 'admin' && (

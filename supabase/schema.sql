@@ -355,6 +355,42 @@ CREATE POLICY "Parents delete their own avatars"
   USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ============================================================
+-- 11. Notifications push (Web Push)
+-- ============================================================
+CREATE TABLE public.push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  parent_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Parents manage their push subscriptions"
+  ON public.push_subscriptions FOR ALL
+  USING (parent_id = auth.uid())
+  WITH CHECK (parent_id = auth.uid());
+
+-- Déclenche l'envoi d'une notification push à chaque nouvelle alerte (voir Edge Function send-push).
+CREATE OR REPLACE FUNCTION public.notify_push_on_alert()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM net.http_post(
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', '<CRON_SECRET>'),
+    body := jsonb_build_object('alert_id', NEW.id)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_alert_created_push
+  AFTER INSERT ON public.alerts
+  FOR EACH ROW EXECUTE FUNCTION public.notify_push_on_alert();
+
+-- ============================================================
 -- FIN - Instructions :
 -- 1. Créer un projet sur https://supabase.com
 -- 2. Aller dans SQL Editor → New query → coller ce fichier → Run
