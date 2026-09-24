@@ -4,9 +4,10 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
 import Avatar from '../components/Avatar'
-import { ArrowLeft, Battery, Wifi, WifiOff, Clock, Radio, Check } from 'lucide-react'
+import { ArrowLeft, Battery, Wifi, WifiOff, Clock, Radio, Check, X } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { reverseGeocode } from '../lib/geocode'
 
 export default function ChildDetail() {
   const { id } = useParams()
@@ -18,6 +19,8 @@ export default function ChildDetail() {
   const [savingImei, setSavingImei] = useState(false)
   const [imeiSaved, setImeiSaved] = useState(false)
   const [imeiError, setImeiError] = useState('')
+  const [removingImei, setRemovingImei] = useState(false)
+  const [placeNames, setPlaceNames] = useState({})
 
   useEffect(() => {
     if (!user) return
@@ -43,6 +46,21 @@ export default function ChildDetail() {
     return () => { cancelled = true }
   }, [id, user, navigate])
 
+  // Résout le nom du lieu pour chaque position de l'historique, progressivement
+  useEffect(() => {
+    let cancelled = false
+    const resolve = async () => {
+      for (const p of history) {
+        if (cancelled) return
+        const label = await reverseGeocode(p.latitude, p.longitude)
+        if (cancelled) return
+        setPlaceNames(prev => (prev[p.id] ? prev : { ...prev, [p.id]: label || '—' }))
+      }
+    }
+    resolve()
+    return () => { cancelled = true }
+  }, [history])
+
   if (!child) return null
 
   const position = history[0] || null
@@ -66,6 +84,23 @@ export default function ChildDetail() {
       }
     } finally {
       setSavingImei(false)
+    }
+  }
+
+  const removeImei = async () => {
+    if (!confirm('Retirer ce traceur de cet enfant ? Il pourra ensuite être associé à un autre enfant.')) return
+    setRemovingImei(true)
+    setImeiError('')
+    try {
+      const { error } = await supabase.from('children').update({ qxgps_imei: null }).eq('id', child.id)
+      if (error) throw error
+      setChild({ ...child, qxgps_imei: null })
+      setImeiInput('')
+      setImeiSaved(false)
+    } catch (err) {
+      setImeiError(err.message || 'Impossible de retirer le traceur, réessaie.')
+    } finally {
+      setRemovingImei(false)
     }
   }
 
@@ -153,6 +188,20 @@ export default function ChildDetail() {
                 {imeiSaved ? <Check size={14} /> : null}
                 {savingImei ? '...' : imeiSaved ? 'Lié' : 'Lier'}
               </button>
+              {child.qxgps_imei && (
+                <button
+                  onClick={removeImei}
+                  disabled={removingImei}
+                  title="Retirer le traceur"
+                  style={{
+                    padding: '9px 10px', borderRadius: 10, background: '#fef2f2',
+                    color: '#ef4444', border: 'none', display: 'flex', alignItems: 'center',
+                    opacity: removingImei ? 0.7 : 1
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
             {imeiError && (
               <p style={{ fontSize: 11, color: '#ef4444', marginTop: 8, lineHeight: 1.4 }}>{imeiError}</p>
@@ -174,17 +223,22 @@ export default function ChildDetail() {
             <div style={{ maxHeight: 300, overflowY: 'auto' }}>
               {history.map((p, i) => (
                 <div key={p.id} style={{
-                  display: 'flex', justifyContent: 'space-between',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
                   padding: '10px 0', borderBottom: i < history.length - 1 ? '1px solid #eff6ff' : 'none',
                   fontSize: 13
                 }}>
-                  <span style={{ fontFamily: 'monospace', color: '#64748b' }}>
-                    {p.latitude.toFixed(5)}, {p.longitude.toFixed(5)}
-                  </span>
-                  <span style={{ color: '#1d4ed8' }}>
-                    {format(new Date(p.recorded_at), 'HH:mm:ss')}
-                  </span>
-                  <span>{p.battery}%</span>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ margin: 0, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {placeNames[p.id] || 'Recherche du lieu...'}
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>
+                      {p.latitude.toFixed(5)}, {p.longitude.toFixed(5)}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ margin: 0, color: '#1d4ed8' }}>{format(new Date(p.recorded_at), 'HH:mm:ss')}</p>
+                    <p style={{ margin: '2px 0 0', color: '#64748b' }}>{p.battery}%</p>
+                  </div>
                 </div>
               ))}
             </div>
