@@ -57,7 +57,11 @@ export default function ChildDetail() {
       setChild({ ...child, qxgps_imei: value })
       setImeiSaved(true)
     } catch (err) {
-      alert(err.message || "Impossible d'enregistrer l'IMEI, réessaie.")
+      if (err.code === '23505') {
+        alert('Ce traceur (IMEI) est déjà associé à un autre enfant. Un même traceur ne peut suivre qu\'un seul enfant à la fois.')
+      } else {
+        alert(err.message || "Impossible d'enregistrer l'IMEI, réessaie.")
+      }
     } finally {
       setSavingImei(false)
     }
