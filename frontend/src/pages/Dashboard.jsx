@@ -26,7 +26,7 @@ const SUB_STATUS = {
 }
 
 export default function Dashboard() {
-  const { user, profile, subscription, activateSubscription, logout } = useAuth()
+  const { user, profile, subscription, refreshProfile, logout } = useAuth()
   const navigate = useNavigate()
   const [children, setChildren] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -559,6 +559,11 @@ export default function Dashboard() {
                       <CheckCircle2 size={16} color="#10b981" />
                       <span>Abonnement actif — <strong>2 500 FCFA/mois</strong></span>
                     </div>
+                    {subscription.endsAt && (
+                      <p style={styles.subMuted}>
+                        Valable jusqu'au {format(new Date(subscription.endsAt), 'dd MMMM yyyy', { locale: fr })}
+                      </p>
+                    )}
                     {profile?.last_payment_at && (
                       <p style={styles.subMuted}>
                         Dernier paiement le {format(new Date(profile.last_payment_at), 'dd MMMM yyyy', { locale: fr })}
@@ -571,19 +576,21 @@ export default function Dashboard() {
                   <div style={styles.subDetails}>
                     <div style={styles.subRow}>
                       <AlertTriangle size={16} color="#ef4444" />
-                      <span>Ton essai gratuit est terminé. Active l'abonnement pour continuer.</span>
+                      <span>Ton accès est terminé. Active l'abonnement pour continuer.</span>
                     </div>
                   </div>
                 )}
 
-                {subscription?.status !== 'active' && (
-                  <div style={styles.subPayZone}>
-                    <p style={styles.subPayTitle}>
-                      {subscription?.status === 'trial' ? 'Activer maintenant (optionnel)' : 'Activer mon abonnement'}
-                    </p>
-                    <PaymentPanel onSuccess={activateSubscription} />
-                  </div>
-                )}
+                <div style={styles.subPayZone}>
+                  <p style={styles.subPayTitle}>
+                    {subscription?.status === 'trial'
+                      ? 'Activer maintenant (optionnel)'
+                      : subscription?.status === 'active'
+                        ? 'Renouveler (+30 jours)'
+                        : 'Activer mon abonnement'}
+                  </p>
+                  <PaymentPanel onSuccess={refreshProfile} />
+                </div>
               </div>
             </div>
           )

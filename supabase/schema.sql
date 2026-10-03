@@ -23,6 +23,7 @@ CREATE TABLE public.profiles (
   subscription_status TEXT NOT NULL DEFAULT 'trial' 
     CHECK (subscription_status IN ('trial', 'active', 'expired', 'pending_approval')),
   subscription_started_at TIMESTAMPTZ,
+  subscription_ends_at TIMESTAMPTZ,
   last_payment_at TIMESTAMPTZ,
   -- Admin approval
   is_approved BOOLEAN NOT NULL DEFAULT false,
@@ -155,8 +156,9 @@ BEGIN
     RETURN true;
   END IF;
   
-  -- Abonnement actif
-  IF p.subscription_status = 'active' THEN
+  -- Abonnement actif (jusqu'à sa date de fin ; NULL = sans expiration, anciens abonnements)
+  IF p.subscription_status = 'active'
+     AND (p.subscription_ends_at IS NULL OR p.subscription_ends_at > NOW()) THEN
     RETURN true;
   END IF;
   
@@ -389,6 +391,55 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_alert_created_push
   AFTER INSERT ON public.alerts
   FOR EACH ROW EXECUTE FUNCTION public.notify_push_on_alert();
+
+-- ============================================================
+-- 12. Paiements CamPay (Orange Money / MTN MoMo)
+-- ============================================================
+CREATE TABLE public.payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  parent_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  campay_reference TEXT NOT NULL UNIQUE,
+  amount INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'XAF',
+  phone TEXT,
+  operator TEXT,
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SUCCESSFUL', 'FAILED')),
+  applied BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_payments_parent ON public.payments(parent_id, created_at DESC);
+
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+-- Lecture seule pour le parent ; l'écriture passe uniquement par l'Edge Function (service_role)
+CREATE POLICY "Parents see their payments"
+  ON public.payments FOR SELECT
+  USING (parent_id = auth.uid() OR public.is_admin());
+
+-- Un parent ne peut pas modifier lui-même rôle / approbation / abonnement
+CREATE OR REPLACE FUNCTION public.protect_profile_sensitive_fields()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF auth.uid() IS NULL OR public.is_admin() THEN
+    RETURN NEW;
+  END IF;
+  NEW.role := OLD.role;
+  NEW.is_approved := OLD.is_approved;
+  NEW.approved_at := OLD.approved_at;
+  NEW.approved_by := OLD.approved_by;
+  NEW.subscription_status := OLD.subscription_status;
+  NEW.trial_ends_at := OLD.trial_ends_at;
+  NEW.subscription_started_at := OLD.subscription_started_at;
+  NEW.subscription_ends_at := OLD.subscription_ends_at;
+  NEW.last_payment_at := OLD.last_payment_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER protect_profile_sensitive_fields
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.protect_profile_sensitive_fields();
 
 -- ============================================================
 -- FIN - Instructions :

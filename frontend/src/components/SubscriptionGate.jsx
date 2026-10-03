@@ -3,7 +3,7 @@ import PaymentPanel from './PaymentPanel'
 import { Shield, Clock, CreditCard, AlertTriangle } from 'lucide-react'
 
 export default function SubscriptionGate({ children }) {
-  const { profile, subscription, activateSubscription, loading } = useAuth()
+  const { profile, subscription, refreshProfile, loading } = useAuth()
 
   if (loading) {
     return (
@@ -41,8 +41,8 @@ export default function SubscriptionGate({ children }) {
           <CreditCard size={48} color="#1d4ed8" />
           <h2 style={styles.title}>Abonnement requis</h2>
           <p style={styles.text}>
-            Votre période d'essai gratuite de 1 mois est terminée.
-            Pour continuer à protéger vos enfants, activez l'abonnement.
+            Votre période d'essai ou votre abonnement est arrivé à son terme.
+            Pour continuer à protéger vos enfants, activez ou renouvelez l'abonnement.
           </p>
           <div style={styles.priceBox}>
             <span style={styles.price}>2 500</span>
@@ -51,7 +51,7 @@ export default function SubscriptionGate({ children }) {
           <p style={styles.sub}>
             Accès illimité : suivi GPS, alertes, géofencing, historique...
           </p>
-          <PaymentPanel onSuccess={activateSubscription} />
+          <PaymentPanel onSuccess={refreshProfile} />
           <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
             Paiement sécurisé • Annulation possible à tout moment
           </p>

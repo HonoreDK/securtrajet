@@ -1,5 +1,20 @@
-import { useState } from 'react'
-import { ArrowLeft, Loader2, Smartphone } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { ArrowLeft, Loader2, Smartphone, CheckCircle2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+
+const POLL_MS = 3000
+const POLL_MAX_MS = 120000
+
+// Les erreurs "non-2xx" de supabase-js sont génériques : on lit le vrai message renvoyé par la fonction.
+async function callPayment(body) {
+  const { data, error } = await supabase.functions.invoke('campay-payment', { body })
+  if (error) {
+    let message
+    try { message = (await error.context.json()).error } catch { /* réponse non JSON */ }
+    throw new Error(message || 'Le service de paiement est momentanément indisponible.')
+  }
+  return data
+}
 
 const PROVIDERS = {
   orange: {
@@ -19,23 +34,49 @@ const PROVIDERS = {
 export default function PaymentPanel({ onSuccess }) {
   const [provider, setProvider] = useState(null)
   const [phone, setPhone] = useState('')
-  const [status, setStatus] = useState('idle') // idle | processing | error
+  const [status, setStatus] = useState('idle') // idle | processing | done | error
   const [error, setError] = useState('')
+  const [ussd, setUssd] = useState(null)
+  const alive = useRef(true)
+
+  useEffect(() => {
+    alive.current = true
+    return () => { alive.current = false }
+  }, [])
 
   const handlePay = async (e) => {
     e.preventDefault()
     setError('')
-    if (!/^\d{9}$/.test(phone.replace(/\s/g, ''))) {
-      setError('Entrez un numéro à 9 chiffres, sans indicatif (ex: 691234567)')
+    const digits = phone.replace(/\s/g, '')
+    if (!/^6\d{8}$/.test(digits)) {
+      setError('Entrez un numéro à 9 chiffres commençant par 6, sans indicatif (ex: 691234567)')
       return
     }
     setStatus('processing')
+    setUssd(null)
     try {
-      // TODO production : remplacer par un appel à l'API Orange Money / MTN MoMo
-      // (via un backend — les clés marchand ne doivent jamais être exposées côté client)
-      await new Promise(resolve => setTimeout(resolve, 1800))
-      await onSuccess()
+      const started = await callPayment({ action: 'collect', phone: digits })
+      if (alive.current) setUssd(started.ussd_code || null)
+
+      const deadline = Date.now() + POLL_MAX_MS
+      while (alive.current && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, POLL_MS))
+        if (!alive.current) return
+        const result = await callPayment({ action: 'status', reference: started.reference })
+        if (result.status === 'SUCCESSFUL') {
+          if (alive.current) setStatus('done')
+          await onSuccess()
+          return
+        }
+        if (result.status === 'FAILED') {
+          throw new Error('Paiement refusé ou annulé sur le téléphone.')
+        }
+      }
+      if (alive.current) {
+        throw new Error("Délai dépassé. Si le montant a été débité, ton abonnement sera activé automatiquement : actualise la page dans un instant.")
+      }
     } catch (err) {
+      if (!alive.current) return
       setStatus('error')
       setError(err.message || 'Le paiement a échoué, réessayez.')
     }
@@ -60,14 +101,28 @@ export default function PaymentPanel({ onSuccess }) {
 
   const p = PROVIDERS[provider]
 
+  if (status === 'done') {
+    return (
+      <div style={styles.processing}>
+        <CheckCircle2 size={32} color="#10b981" />
+        <p style={{ fontWeight: 600, marginTop: 12 }}>Paiement confirmé, abonnement activé !</p>
+      </div>
+    )
+  }
+
   if (status === 'processing') {
     return (
       <div style={styles.processing}>
         <Loader2 size={28} color={p.color} className="spin" />
         <p style={{ fontWeight: 600, marginTop: 12 }}>Confirmez la transaction sur votre téléphone…</p>
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-          Une demande {p.label} a été envoyée au {phone}
+          Une demande {p.label} a été envoyée au {phone}. Saisissez votre code PIN pour valider.
         </p>
+        {ussd && (
+          <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+            Pas de notification ? Composez : {ussd}
+          </p>
+        )}
       </div>
     )
   }

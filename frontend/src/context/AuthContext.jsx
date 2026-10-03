@@ -29,12 +29,19 @@ export function AuthProvider({ children }) {
     }
     setProfile(data)
 
+    // Un abonnement "actif" donne accès jusqu'à sa date de fin (null = ancien abonnement sans expiration)
+    const activeValid =
+      data.subscription_status === 'active' &&
+      (!data.subscription_ends_at || new Date(data.subscription_ends_at) > new Date())
+    const status =
+      data.subscription_status === 'active' && !activeValid ? 'expired' : data.subscription_status
+
     // Statut d'accès
     const hasAccess =
       data.role === 'admin' ||
       (data.is_approved && (
         (data.subscription_status === 'trial' && new Date(data.trial_ends_at) > new Date()) ||
-        data.subscription_status === 'active'
+        activeValid
       ))
 
     const trialDaysLeft = data.subscription_status === 'trial'
@@ -42,11 +49,12 @@ export function AuthProvider({ children }) {
       : null
 
     setSubscription({
-      status: data.subscription_status,
+      status,
       isApproved: data.is_approved,
       hasAccess,
       trialDaysLeft,
-      trialEndsAt: data.trial_ends_at
+      trialEndsAt: data.trial_ends_at,
+      endsAt: data.subscription_ends_at
     })
   }
 
@@ -119,20 +127,6 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
-  // Activer l'abonnement (après paiement 2500)
-  const activateSubscription = async () => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        subscription_status: 'active',
-        subscription_started_at: new Date().toISOString(),
-        last_payment_at: new Date().toISOString()
-      })
-      .eq('id', user.id)
-    if (error) throw error
-    await loadProfile(user.id)
-  }
-
   // Admin : modifier les infos d'un utilisateur
   const adminUpdateUser = async (userId, updates) => {
     if (profile?.role !== 'admin') throw new Error('Action réservée aux administrateurs')
@@ -153,7 +147,6 @@ export function AuthProvider({ children }) {
       register,
       logout,
       approveUser,
-      activateSubscription,
       adminUpdateUser,
       refreshProfile: () => user && loadProfile(user.id)
     }}>
