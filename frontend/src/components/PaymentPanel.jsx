@@ -37,6 +37,7 @@ export default function PaymentPanel({ onSuccess }) {
   const [status, setStatus] = useState('idle') // idle | processing | done | error
   const [error, setError] = useState('')
   const [ussd, setUssd] = useState(null)
+  const [sandbox, setSandbox] = useState(false)
   const alive = useRef(true)
 
   useEffect(() => {
@@ -56,7 +57,10 @@ export default function PaymentPanel({ onSuccess }) {
     setUssd(null)
     try {
       const started = await callPayment({ action: 'collect', phone: digits })
-      if (alive.current) setUssd(started.ussd_code || null)
+      if (alive.current) {
+        setUssd(started.ussd_code || null)
+        setSandbox(Boolean(started.sandbox))
+      }
 
       const deadline = Date.now() + POLL_MAX_MS
       while (alive.current && Date.now() < deadline) {
@@ -118,6 +122,11 @@ export default function PaymentPanel({ onSuccess }) {
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
           Une demande {p.label} a été envoyée au {phone}. Saisissez votre code PIN pour valider.
         </p>
+        {sandbox && (
+          <p style={{ fontSize: 12, color: '#f59e0b', marginTop: 8 }}>
+            Mode test : montant symbolique de 25 FCFA, aucun vrai paiement.
+          </p>
+        )}
         {ussd && (
           <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
             Pas de notification ? Composez : {ussd}

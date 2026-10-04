@@ -22,8 +22,10 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const CAMPAY_HOST = Deno.env.get("CAMPAY_ENV") === "PROD" ? "https://www.campay.net" : "https://demo.campay.net";
-const AMOUNT_XAF = 2500;
+const IS_PROD = Deno.env.get("CAMPAY_ENV") === "PROD";
+const CAMPAY_HOST = IS_PROD ? "https://www.campay.net" : "https://demo.campay.net";
+// La sandbox CamPay refuse tout montant supérieur à 25 XAF ; le vrai tarif ne s'applique qu'en production.
+const AMOUNT_XAF = IS_PROD ? 2500 : 25;
 const PERIOD_DAYS = 30;
 const MAX_INITIATIONS_PER_HOUR = 5;
 const PENDING_COOLDOWN_MS = 90_000;
@@ -144,7 +146,13 @@ async function handleCollect(userId: string, body: { phone?: unknown }, admin: A
     return json({ error: "Paiement initié mais non enregistré, contacte le support." }, 500);
   }
 
-  return json({ reference: data.reference, operator: data.operator ?? null, ussd_code: data.ussd_code ?? null });
+  return json({
+    reference: data.reference,
+    operator: data.operator ?? null,
+    ussd_code: data.ussd_code ?? null,
+    amount: AMOUNT_XAF,
+    sandbox: !IS_PROD
+  });
 }
 
 async function extendSubscription(userId: string, admin: AdminClient) {
