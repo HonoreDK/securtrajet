@@ -42,19 +42,34 @@ function json(body: unknown, status = 200) {
 // deno-lint-ignore no-explicit-any
 type AdminClient = any;
 
+// Erreur dont le message est sûr à afficher à l'utilisateur (jamais de secret dedans).
+class CampayError extends Error {}
+
+const ENV_LABEL = Deno.env.get("CAMPAY_ENV") === "PROD" ? "production" : "sandbox (demo.campay.net)";
+
 async function campayToken(): Promise<string> {
-  const res = await fetch(`${CAMPAY_HOST}/api/token/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: Deno.env.get("CAMPAY_APP_USERNAME"),
-      password: Deno.env.get("CAMPAY_APP_PASSWORD")
-    })
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${CAMPAY_HOST}/api/token/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: Deno.env.get("CAMPAY_APP_USERNAME"),
+        password: Deno.env.get("CAMPAY_APP_PASSWORD")
+      })
+    });
+  } catch (err) {
+    console.error("CamPay injoignable:", String(err));
+    throw new CampayError("CamPay est injoignable pour le moment, réessaie plus tard.");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.token) {
-    console.error("CamPay token refusé, HTTP", res.status);
-    throw new Error("Authentification CamPay échouée (vérifie CAMPAY_APP_USERNAME / CAMPAY_APP_PASSWORD / CAMPAY_ENV)");
+    console.error("CamPay token refusé, HTTP", res.status, JSON.stringify(data));
+    throw new CampayError(
+      `CamPay refuse les identifiants de l'application en mode ${ENV_LABEL}. ` +
+      "Vérifie CAMPAY_APP_USERNAME / CAMPAY_APP_PASSWORD (ceux de l'application, pas de ton compte) " +
+      "et que l'environnement correspond à ton compte."
+    );
   }
   return data.token;
 }
@@ -230,6 +245,7 @@ Deno.serve(async (req) => {
     return json({ error: "Action inconnue" }, 400);
   } catch (err) {
     console.error("campay-payment error:", err);
+    if (err instanceof CampayError) return json({ error: err.message }, 502);
     return json({ error: "Erreur interne du paiement." }, 500);
   }
 });
