@@ -14,7 +14,8 @@
 //   host : https://demo.campay.net (sandbox) | https://www.campay.net (production)
 //
 // Secrets requis (supabase secrets set ...) :
-//   CAMPAY_APP_USERNAME / CAMPAY_APP_PASSWORD -> identifiants de l'application créée sur campay.net
+//   CAMPAY_ACCESS_TOKEN                       -> jeton permanent (section "APP KEYS" de l'application) [recommandé]
+//   ou CAMPAY_APP_USERNAME + CAMPAY_APP_PASSWORD -> identifiants de l'application (jeton temporaire)
 //   CAMPAY_ENV                                -> "PROD" pour le vrai argent ; sinon sandbox (défaut)
 //
 // Déploiement : supabase functions deploy campay-payment   (vérification JWT activée)
@@ -48,6 +49,11 @@ class CampayError extends Error {}
 const ENV_LABEL = Deno.env.get("CAMPAY_ENV") === "PROD" ? "production" : "sandbox (demo.campay.net)";
 
 async function campayToken(): Promise<string> {
+  // Méthode 1 (doc CamPay) : jeton d'accès permanent, section "APP KEYS" de l'application.
+  const permanent = Deno.env.get("CAMPAY_ACCESS_TOKEN");
+  if (permanent) return permanent;
+
+  // Méthode 2 : jeton temporaire obtenu avec le username/password de l'application.
   let res: Response;
   try {
     res = await fetch(`${CAMPAY_HOST}/api/token/`, {
@@ -116,6 +122,9 @@ async function handleCollect(userId: string, body: { phone?: unknown }, admin: A
     })
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 || res.status === 403) {
+    throw new CampayError(`CamPay refuse le jeton d'accès en mode ${ENV_LABEL} : vérifie CAMPAY_ACCESS_TOKEN.`);
+  }
   if (!res.ok || !data.reference) {
     console.error("CamPay collect refusé, HTTP", res.status, data?.message);
     return json({ error: data?.message || "Le paiement n'a pas pu être initié." }, 502);
@@ -184,6 +193,9 @@ async function handleStatus(userId: string, body: { reference?: unknown }, admin
     headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" }
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 || res.status === 403) {
+    throw new CampayError(`CamPay refuse le jeton d'accès en mode ${ENV_LABEL} : vérifie CAMPAY_ACCESS_TOKEN.`);
+  }
   if (!res.ok) {
     console.error("CamPay statut indisponible, HTTP", res.status);
     return json({ status: "PENDING" }); // erreur ponctuelle : le frontend réessaiera
@@ -233,8 +245,10 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) return json({ error: "Session invalide" }, 401);
 
-    if (!Deno.env.get("CAMPAY_APP_USERNAME") || !Deno.env.get("CAMPAY_APP_PASSWORD")) {
-      return json({ error: "Paiement non configuré (identifiants CamPay manquants)." }, 500);
+    const hasToken = Boolean(Deno.env.get("CAMPAY_ACCESS_TOKEN"));
+    const hasLogin = Boolean(Deno.env.get("CAMPAY_APP_USERNAME") && Deno.env.get("CAMPAY_APP_PASSWORD"));
+    if (!hasToken && !hasLogin) {
+      return json({ error: "Paiement non configuré (jeton ou identifiants CamPay manquants)." }, 500);
     }
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
