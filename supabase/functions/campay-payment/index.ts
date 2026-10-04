@@ -27,6 +27,8 @@ const CAMPAY_HOST = IS_PROD ? "https://www.campay.net" : "https://demo.campay.ne
 // La sandbox CamPay refuse tout montant supérieur à 25 XAF ; le vrai tarif ne s'applique qu'en production.
 const AMOUNT_XAF = IS_PROD ? 2500 : 25;
 const PERIOD_DAYS = 30;
+// Texte affiché à l'abonné dans la demande de validation Mobile Money.
+const PAYMENT_DESCRIPTION = "SecurTrajet - Abonnement mensuel Nova Tech";
 const MAX_INITIATIONS_PER_HOUR = 5;
 const PENDING_COOLDOWN_MS = 90_000;
 
@@ -119,7 +121,7 @@ async function handleCollect(userId: string, body: { phone?: unknown }, admin: A
       amount: String(AMOUNT_XAF),
       currency: "XAF",
       from: `237${phone}`,
-      description: "Abonnement SecurTrajet (1 mois)",
+      description: PAYMENT_DESCRIPTION,
       external_reference: paymentId
     })
   });

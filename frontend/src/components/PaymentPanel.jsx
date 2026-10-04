@@ -109,7 +109,10 @@ export default function PaymentPanel({ onSuccess }) {
     return (
       <div style={styles.processing}>
         <CheckCircle2 size={32} color="#10b981" />
-        <p style={{ fontWeight: 600, marginTop: 12 }}>Paiement confirmé, abonnement activé !</p>
+        <p style={{ fontWeight: 600, marginTop: 12 }}>Merci pour ton paiement !</p>
+        <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+          Ton abonnement SecurTrajet est activé pour 30 jours.
+        </p>
       </div>
     )
   }
@@ -118,9 +121,10 @@ export default function PaymentPanel({ onSuccess }) {
     return (
       <div style={styles.processing}>
         <Loader2 size={28} color={p.color} className="spin" />
-        <p style={{ fontWeight: 600, marginTop: 12 }}>Confirmez la transaction sur votre téléphone…</p>
+        <p style={{ fontWeight: 600, marginTop: 12 }}>Validez le paiement sur votre téléphone</p>
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-          Une demande {p.label} a été envoyée au {phone}. Saisissez votre code PIN pour valider.
+          Une demande {p.label} vient d'être envoyée au {phone}. Saisissez votre code secret pour confirmer.
+          Cette page se mettra à jour toute seule.
         </p>
         {sandbox && (
           <p style={{ fontSize: 12, color: '#f59e0b', marginTop: 8 }}>
