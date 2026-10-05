@@ -20,7 +20,7 @@ function UssdPreview({ provider, template, number }) {
   const code = buildUssd(t, number)
   return code
     ? <p style={previewStyles.ok}>Code composé : <strong>{code}</strong></p>
-    : <p style={previewStyles.bad}>Modèle invalide (chiffres, * et # uniquement) ou numéro de réception manquant : le menu principal sera utilisé.</p>
+    : <p style={previewStyles.bad}>Modèle invalide (chiffres, * et # uniquement) ou code marchand manquant : le menu principal sera utilisé.</p>
 }
 
 const previewStyles = {
@@ -219,11 +219,11 @@ export default function AdminPayments() {
         <label style={styles.label}>Nom affiché aux parents</label>
         <input value={settings.pay_recipient_name || ''} onChange={e => setField('pay_recipient_name', e.target.value)} style={styles.input} />
 
-        <label style={styles.label}>Numéro Orange Money (code marchand ou numéro)</label>
-        <input value={settings.pay_orange_number || ''} onChange={e => setField('pay_orange_number', e.target.value)} placeholder="ex : 6XX XXX XXX" style={styles.input} />
+        <label style={styles.label}>Code marchand Orange Money</label>
+        <input value={settings.pay_orange_number || ''} onChange={e => setField('pay_orange_number', e.target.value)} placeholder="ex : 123456" inputMode="numeric" style={styles.input} />
 
-        <label style={styles.label}>Numéro MTN MoMo (code marchand ou numéro)</label>
-        <input value={settings.pay_mtn_number || ''} onChange={e => setField('pay_mtn_number', e.target.value)} placeholder="ex : 6XX XXX XXX" style={styles.input} />
+        <label style={styles.label}>Code marchand MTN MoMo</label>
+        <input value={settings.pay_mtn_number || ''} onChange={e => setField('pay_mtn_number', e.target.value)} placeholder="ex : 123456" inputMode="numeric" style={styles.input} />
 
         <label style={styles.label}>Code USSD Orange Money (optionnel)</label>
         <input value={settings.pay_orange_ussd || ''} onChange={e => setField('pay_orange_ussd', e.target.value)} placeholder="ex : #150*1*{number}*{amount}#" style={styles.input} />
@@ -234,7 +234,7 @@ export default function AdminPayments() {
         <UssdPreview provider="mtn" template={settings.pay_mtn_ussd} number={settings.pay_mtn_number} />
         <p style={styles.hint}>
           Le bouton « Payer maintenant » ouvre le composeur du parent avec ce code. {'{number}'} est remplacé par le
-          numéro de réception et {'{amount}'} par 2500. <strong>Teste toi-même le code complet</strong> avant de
+          code marchand et {'{amount}'} par 2500. <strong>Teste toi-même le code complet</strong> avant de
           l'enregistrer : les séquences varient selon l'opérateur et le type de compte.
         </p>
 

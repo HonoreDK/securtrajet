@@ -112,7 +112,7 @@ export default function ManualPaymentPanel({ onApproved }) {
       await navigator.clipboard.writeText(value.replace(/[^\d+]/g, ''))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch { /* presse-papiers indisponible : le numéro reste affiché */ }
+    } catch { /* presse-papiers indisponible : le code marchand reste affiché */ }
   }
 
   const copyUssd = async (code) => {
@@ -228,6 +228,7 @@ export default function ManualPaymentPanel({ onApproved }) {
               <>
               <div style={styles.numberBox}>
                 <div>
+                  <div style={styles.recipient}>Code marchand</div>
                   <div style={styles.number}>{payNumber}</div>
                   <div style={styles.recipient}>au nom de {recipient}</div>
                 </div>
@@ -259,14 +260,14 @@ export default function ManualPaymentPanel({ onApproved }) {
                     {' '}
                     {ussdIsDirect
                       ? 'Suis ensuite les instructions et entre ton code secret pour confirmer.'
-                      : `Tu arrives au menu ${p.label} : choisis le transfert d'argent et envoie 2 500 FCFA au numéro ci-dessus.`}
+                      : `Tu arrives au menu ${p.label} : choisis le transfert d'argent et envoie 2 500 FCFA au code marchand ci-dessus.`}
                   </p>
                 </div>
               )}
               </>
             ) : (
               <p style={styles.warn}>
-                Le numéro de paiement {p.label} n'est pas encore renseigné. Contacte l'administrateur.
+                Le code marchand {p.label} n'est pas encore renseigné. Contacte l'administrateur.
               </p>
             )}
           </div>
