@@ -4,11 +4,11 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { buildUssd, resolveUssd, dialHref, isIOS } from '../lib/ussd'
+import { merchantUssd, resolveUssd, dialHref, isIOS } from '../lib/ussd'
 
 const PROVIDERS = {
-  orange: { label: 'Orange Money', color: '#FF6600', textColor: '#ffffff', setting: 'pay_orange_number', ussdSetting: 'pay_orange_ussd', refHint: 'ex : MP260105.1234.A12345' },
-  mtn: { label: 'MTN Mobile Money', color: '#FFCB05', textColor: '#1a1a1a', setting: 'pay_mtn_number', ussdSetting: 'pay_mtn_ussd', refHint: 'ex : 1234567890' }
+  orange: { label: 'Orange Money', color: '#FF6600', textColor: '#ffffff', setting: 'pay_orange_number', refHint: 'ex : MP260105.1234.A12345' },
+  mtn: { label: 'MTN Mobile Money', color: '#FFCB05', textColor: '#1a1a1a', setting: 'pay_mtn_number', refHint: 'ex : 1234567890' }
 }
 
 const STATUS = {
@@ -42,7 +42,7 @@ export default function ManualPaymentPanel({ onApproved }) {
     supabase
       .from('app_settings')
       .select('key, value')
-      .in('key', ['pay_orange_number', 'pay_mtn_number', 'pay_recipient_name', 'pay_orange_ussd', 'pay_mtn_ussd'])
+      .in('key', ['pay_orange_number', 'pay_mtn_number', 'pay_recipient_name'])
       .then(({ data }) => setSettings(Object.fromEntries((data || []).map(s => [s.key, s.value]))))
   }, [])
 
@@ -109,7 +109,7 @@ export default function ManualPaymentPanel({ onApproved }) {
 
   const copyNumber = async (value) => {
     try {
-      await navigator.clipboard.writeText(value.replace(/[^\d+]/g, ''))
+      await navigator.clipboard.writeText(value.replace(/\s/g, ''))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { /* presse-papiers indisponible : le code marchand reste affiché */ }
@@ -126,9 +126,8 @@ export default function ManualPaymentPanel({ onApproved }) {
   const recipient = settings.pay_recipient_name || 'Nova Tech Solution'
   const p = provider ? PROVIDERS[provider] : null
   const payNumber = p ? settings[p.setting] : ''
-  const ussdTemplate = p ? settings[p.ussdSetting] : ''
-  const ussd = p ? resolveUssd(provider, ussdTemplate, payNumber) : null
-  const ussdIsDirect = Boolean(buildUssd(ussdTemplate, payNumber)) // sinon : simple menu principal
+  const ussd = p ? resolveUssd(provider, payNumber) : null
+  const ussdIsDirect = p ? Boolean(merchantUssd(provider, payNumber)) : false // sinon : simple menu principal
   const ios = isIOS()
 
   // Un clic sur l'opérateur : on passe à l'étape suivante et on charge directement le code de
@@ -142,7 +141,7 @@ export default function ManualPaymentPanel({ onApproved }) {
     setDialed(false)
     const number = settings[prov.setting]
     if (!number) return
-    const code = resolveUssd(key, settings[prov.ussdSetting], number)
+    const code = resolveUssd(key, number)
     if (!code) return
     setDialed(true)
     if (ios) {

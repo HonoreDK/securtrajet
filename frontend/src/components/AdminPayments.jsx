@@ -4,23 +4,22 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
 import { invokeFunction } from '../lib/functions'
-import { buildUssd, DEFAULT_USSD } from '../lib/ussd'
+import { merchantUssd, DEFAULT_USSD } from '../lib/ussd'
 
 const PROVIDER_LABEL = { orange: 'Orange Money', mtn: 'MTN MoMo' }
 const POLL_MS = 15000
 
-const SETTING_KEYS = [
-  'payment_mode', 'pay_orange_number', 'pay_mtn_number', 'pay_recipient_name', 'pay_orange_ussd', 'pay_mtn_ussd'
-]
+const SETTING_KEYS = ['payment_mode', 'pay_orange_number', 'pay_mtn_number', 'pay_recipient_name']
 
-// Aperçu du code que le bouton « Payer maintenant » composera chez le parent.
-function UssdPreview({ provider, template, number }) {
-  const t = String(template || '').trim()
-  if (!t) return <p style={previewStyles.hint}>Vide : le bouton ouvrira le menu principal ({DEFAULT_USSD[provider]}).</p>
-  const code = buildUssd(t, number)
+// Aperçu du code que le bouton « Payer » composera chez le parent.
+function UssdPreview({ provider, merchant }) {
+  if (!String(merchant || '').trim()) {
+    return <p style={previewStyles.hint}>Vide : le bouton « Payer » n'ouvrira rien tant que le code n'est pas renseigné.</p>
+  }
+  const code = merchantUssd(provider, merchant)
   return code
-    ? <p style={previewStyles.ok}>Code composé : <strong>{code}</strong></p>
-    : <p style={previewStyles.bad}>Modèle invalide (chiffres, * et # uniquement) ou code marchand manquant : le menu principal sera utilisé.</p>
+    ? <p style={previewStyles.ok}>Code composé chez le parent : <strong>{code}</strong></p>
+    : <p style={previewStyles.hint}>Le menu principal de l'opérateur ({DEFAULT_USSD[provider]}) s'ouvrira et le parent verra ce code marchand à utiliser.</p>
 }
 
 const previewStyles = {
@@ -220,22 +219,17 @@ export default function AdminPayments() {
         <input value={settings.pay_recipient_name || ''} onChange={e => setField('pay_recipient_name', e.target.value)} style={styles.input} />
 
         <label style={styles.label}>Code marchand Orange Money</label>
-        <input value={settings.pay_orange_number || ''} onChange={e => setField('pay_orange_number', e.target.value)} placeholder="ex : 123456" inputMode="numeric" style={styles.input} />
+        <input value={settings.pay_orange_number || ''} onChange={e => setField('pay_orange_number', e.target.value)} placeholder="ex : 123456" style={styles.input} />
+        <UssdPreview provider="orange" merchant={settings.pay_orange_number} />
 
         <label style={styles.label}>Code marchand MTN MoMo</label>
-        <input value={settings.pay_mtn_number || ''} onChange={e => setField('pay_mtn_number', e.target.value)} placeholder="ex : 123456" inputMode="numeric" style={styles.input} />
-
-        <label style={styles.label}>Code USSD Orange Money (optionnel)</label>
-        <input value={settings.pay_orange_ussd || ''} onChange={e => setField('pay_orange_ussd', e.target.value)} placeholder="ex : #150*1*{number}*{amount}#" style={styles.input} />
-        <UssdPreview provider="orange" template={settings.pay_orange_ussd} number={settings.pay_orange_number} />
-
-        <label style={styles.label}>Code USSD MTN MoMo (optionnel)</label>
-        <input value={settings.pay_mtn_ussd || ''} onChange={e => setField('pay_mtn_ussd', e.target.value)} placeholder="ex : *126*1*{number}*{amount}#" style={styles.input} />
-        <UssdPreview provider="mtn" template={settings.pay_mtn_ussd} number={settings.pay_mtn_number} />
+        <input value={settings.pay_mtn_number || ''} onChange={e => setField('pay_mtn_number', e.target.value)} placeholder="ex : 123456" style={styles.input} />
+        <UssdPreview provider="mtn" merchant={settings.pay_mtn_number} />
         <p style={styles.hint}>
-          Le bouton « Payer maintenant » ouvre le composeur du parent avec ce code. {'{number}'} est remplacé par le
-          code marchand et {'{amount}'} par 2500. <strong>Teste toi-même le code complet</strong> avant de
-          l'enregistrer : les séquences varient selon l'opérateur et le type de compte.
+          Saisis seulement les chiffres du code marchand : le code USSD (ex. MTN <strong>*126*4*code*2500#</strong>) est
+          composé automatiquement chez le parent. Pour un opérateur dont la séquence n'est pas connue, tu peux coller
+          la séquence complète de la carte marchand (le montant s'écrit <strong>{'{amount}'}</strong>).
+          <strong> Teste toi-même</strong> avant de laisser les parents payer.
         </p>
 
         <button style={styles.saveBtn} disabled={savingSettings} onClick={saveSettings}>
