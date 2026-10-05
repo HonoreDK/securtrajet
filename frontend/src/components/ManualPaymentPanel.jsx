@@ -7,8 +7,8 @@ import { supabase } from '../lib/supabase'
 import { merchantUssd, resolveUssd, dialHref, isIOS } from '../lib/ussd'
 
 const PROVIDERS = {
-  orange: { label: 'Orange Money', color: '#FF6600', textColor: '#ffffff', setting: 'pay_orange_number', refHint: 'ex : MP260105.1234.A12345' },
-  mtn: { label: 'MTN Mobile Money', color: '#FFCB05', textColor: '#1a1a1a', setting: 'pay_mtn_number', refHint: 'ex : 1234567890' }
+  orange: { label: 'Orange Money', color: '#FF6600', textColor: '#ffffff', setting: 'pay_orange_ussd', refHint: 'ex : MP260105.1234.A12345' },
+  mtn: { label: 'MTN Mobile Money', color: '#FFCB05', textColor: '#1a1a1a', setting: 'pay_mtn_ussd', refHint: 'ex : 1234567890' }
 }
 
 const STATUS = {
@@ -42,7 +42,7 @@ export default function ManualPaymentPanel({ onApproved }) {
     supabase
       .from('app_settings')
       .select('key, value')
-      .in('key', ['pay_orange_number', 'pay_mtn_number', 'pay_recipient_name'])
+      .in('key', ['pay_orange_ussd', 'pay_mtn_ussd', 'pay_recipient_name'])
       .then(({ data }) => setSettings(Object.fromEntries((data || []).map(s => [s.key, s.value]))))
   }, [])
 

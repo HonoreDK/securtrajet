@@ -9,7 +9,7 @@ import { merchantUssd, DEFAULT_USSD } from '../lib/ussd'
 const PROVIDER_LABEL = { orange: 'Orange Money', mtn: 'MTN MoMo' }
 const POLL_MS = 15000
 
-const SETTING_KEYS = ['payment_mode', 'pay_orange_number', 'pay_mtn_number', 'pay_recipient_name']
+const SETTING_KEYS = ['payment_mode', 'pay_orange_ussd', 'pay_mtn_ussd', 'pay_recipient_name']
 
 // Aperçu du code que le bouton « Payer » composera chez le parent.
 function UssdPreview({ provider, merchant }) {
@@ -219,17 +219,16 @@ export default function AdminPayments() {
         <input value={settings.pay_recipient_name || ''} onChange={e => setField('pay_recipient_name', e.target.value)} style={styles.input} />
 
         <label style={styles.label}>Code marchand Orange Money</label>
-        <input value={settings.pay_orange_number || ''} onChange={e => setField('pay_orange_number', e.target.value)} placeholder="ex : 123456" style={styles.input} />
-        <UssdPreview provider="orange" merchant={settings.pay_orange_number} />
+        <input value={settings.pay_orange_ussd || ''} onChange={e => setField('pay_orange_ussd', e.target.value)} placeholder="Code de la carte marchand Orange" style={styles.input} />
+        <UssdPreview provider="orange" merchant={settings.pay_orange_ussd} />
 
         <label style={styles.label}>Code marchand MTN MoMo</label>
-        <input value={settings.pay_mtn_number || ''} onChange={e => setField('pay_mtn_number', e.target.value)} placeholder="ex : 123456" style={styles.input} />
-        <UssdPreview provider="mtn" merchant={settings.pay_mtn_number} />
+        <input value={settings.pay_mtn_ussd || ''} onChange={e => setField('pay_mtn_ussd', e.target.value)} placeholder="ex : *126*4*123456*2500#" style={styles.input} />
+        <UssdPreview provider="mtn" merchant={settings.pay_mtn_ussd} />
         <p style={styles.hint}>
-          Saisis seulement les chiffres du code marchand : le code USSD (ex. MTN <strong>*126*4*code*2500#</strong>) est
-          composé automatiquement chez le parent. Pour un opérateur dont la séquence n'est pas connue, tu peux coller
-          la séquence complète de la carte marchand (le montant s'écrit <strong>{'{amount}'}</strong>).
-          <strong> Teste toi-même</strong> avant de laisser les parents payer.
+          Colle le code marchand tel qu'il est sur la carte de l'opérateur (ex. MTN <strong>*126*4*123456*2500#</strong>).
+          Il s'ouvre dans le téléphone du parent quand il appuie sur « Payer ». Tu peux écrire <strong>{'{amount}'}</strong> à
+          la place du montant. <strong>Teste toi-même</strong> avant de laisser les parents payer.
         </p>
 
         <button style={styles.saveBtn} disabled={savingSettings} onClick={saveSettings}>
