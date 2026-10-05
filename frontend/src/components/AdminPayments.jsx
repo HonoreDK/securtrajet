@@ -3,11 +3,31 @@ import { Check, X, Wallet, Settings as SettingsIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
+import { invokeFunction } from '../lib/functions'
+import { buildUssd, DEFAULT_USSD } from '../lib/ussd'
 
 const PROVIDER_LABEL = { orange: 'Orange Money', mtn: 'MTN MoMo' }
 const POLL_MS = 15000
 
-const SETTING_KEYS = ['payment_mode', 'pay_orange_number', 'pay_mtn_number', 'pay_recipient_name']
+const SETTING_KEYS = [
+  'payment_mode', 'pay_orange_number', 'pay_mtn_number', 'pay_recipient_name', 'pay_orange_ussd', 'pay_mtn_ussd'
+]
+
+// Aperçu du code que le bouton « Payer maintenant » composera chez le parent.
+function UssdPreview({ provider, template, number }) {
+  const t = String(template || '').trim()
+  if (!t) return <p style={previewStyles.hint}>Vide : le bouton ouvrira le menu principal ({DEFAULT_USSD[provider]}).</p>
+  const code = buildUssd(t, number)
+  return code
+    ? <p style={previewStyles.ok}>Code composé : <strong>{code}</strong></p>
+    : <p style={previewStyles.bad}>Modèle invalide (chiffres, * et # uniquement) ou numéro de réception manquant : le menu principal sera utilisé.</p>
+}
+
+const previewStyles = {
+  hint: { fontSize: 11, color: '#94a3b8', margin: '4px 0 0' },
+  ok: { fontSize: 12, color: '#065f46', margin: '4px 0 0' },
+  bad: { fontSize: 12, color: '#b45309', margin: '4px 0 0' }
+}
 
 export default function AdminPayments() {
   const [payments, setPayments] = useState([])
@@ -15,6 +35,7 @@ export default function AdminPayments() {
   const [settings, setSettings] = useState({})
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsSaved, setSettingsSaved] = useState(false)
+  const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -44,8 +65,39 @@ export default function AdminPayments() {
     if (!confirm(`Confirmer que tu as bien reçu 2 500 FCFA de ${who} (réf. ${p.transaction_ref}) ?\nL'abonnement sera prolongé de 30 jours.`)) return
     setBusyId(p.id)
     const { error } = await supabase.rpc('approve_manual_payment', { p_id: p.id })
+    if (error) {
+      setBusyId(null)
+      alert(error.message)
+      load()
+      return
+    }
+    await sendReceipt(p, 'Paiement validé.')
     setBusyId(null)
-    if (error) alert(error.message)
+    load()
+  }
+
+  // Envoie (ou renvoie) le reçu par e-mail au parent ; un échec n'annule jamais la validation.
+  const sendReceipt = async (p, prefix = '') => {
+    try {
+      const res = await invokeFunction('send-receipt', { payment_id: p.id, resend: Boolean(p.receipt_sent_at) })
+      setNotice({
+        type: 'ok',
+        text: res.already
+          ? `${prefix} Le reçu avait déjà été envoyé.`.trim()
+          : `${prefix} Reçu envoyé à ${res.to}.`.trim()
+      })
+    } catch (err) {
+      setNotice({
+        type: 'warn',
+        text: `${prefix} Le reçu n'a pas pu être envoyé : ${err.message} Tu peux le renvoyer depuis la liste ci-dessous.`.trim()
+      })
+    }
+  }
+
+  const resendReceipt = async (p) => {
+    setBusyId(p.id)
+    await sendReceipt(p)
+    setBusyId(null)
     load()
   }
 
@@ -88,6 +140,12 @@ export default function AdminPayments() {
           Compare chaque référence avec les SMS / l'historique de ton compte Orange Money ou MTN MoMo avant de valider.
         </p>
 
+        {notice && (
+          <div style={{ ...styles.notice, ...(notice.type === 'ok' ? styles.noticeOk : styles.noticeWarn) }}>
+            {notice.text}
+          </div>
+        )}
+
         {pending.length === 0 && <p style={styles.empty}>Aucun paiement en attente.</p>}
 
         {pending.map(p => (
@@ -122,8 +180,15 @@ export default function AdminPayments() {
                   {`${p.parent?.first_name || ''} ${p.parent?.last_name || ''}`.trim() || p.parent?.email}
                   {' • '}<span style={styles.mono}>{p.transaction_ref}</span>
                 </span>
-                <span style={{ color: p.status === 'approved' ? '#10b981' : '#ef4444', fontWeight: 700 }}>
-                  {p.status === 'approved' ? 'Validé' : 'Refusé'}
+                <span style={styles.treatedRight}>
+                  <span style={{ color: p.status === 'approved' ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                    {p.status === 'approved' ? 'Validé' : 'Refusé'}
+                  </span>
+                  {p.status === 'approved' && (
+                    <button style={styles.receiptBtn} disabled={busyId === p.id} onClick={() => resendReceipt(p)}>
+                      {p.receipt_sent_at ? 'Renvoyer le reçu' : 'Envoyer le reçu'}
+                    </button>
+                  )}
                 </span>
               </div>
             ))}
@@ -160,6 +225,19 @@ export default function AdminPayments() {
         <label style={styles.label}>Numéro MTN MoMo (code marchand ou numéro)</label>
         <input value={settings.pay_mtn_number || ''} onChange={e => setField('pay_mtn_number', e.target.value)} placeholder="ex : 6XX XXX XXX" style={styles.input} />
 
+        <label style={styles.label}>Code USSD Orange Money (optionnel)</label>
+        <input value={settings.pay_orange_ussd || ''} onChange={e => setField('pay_orange_ussd', e.target.value)} placeholder="ex : #150*1*{number}*{amount}#" style={styles.input} />
+        <UssdPreview provider="orange" template={settings.pay_orange_ussd} number={settings.pay_orange_number} />
+
+        <label style={styles.label}>Code USSD MTN MoMo (optionnel)</label>
+        <input value={settings.pay_mtn_ussd || ''} onChange={e => setField('pay_mtn_ussd', e.target.value)} placeholder="ex : *126*1*{number}*{amount}#" style={styles.input} />
+        <UssdPreview provider="mtn" template={settings.pay_mtn_ussd} number={settings.pay_mtn_number} />
+        <p style={styles.hint}>
+          Le bouton « Payer maintenant » ouvre le composeur du parent avec ce code. {'{number}'} est remplacé par le
+          numéro de réception et {'{amount}'} par 2500. <strong>Teste toi-même le code complet</strong> avant de
+          l'enregistrer : les séquences varient selon l'opérateur et le type de compte.
+        </p>
+
         <button style={styles.saveBtn} disabled={savingSettings} onClick={saveSettings}>
           {savingSettings ? 'Enregistrement...' : settingsSaved ? 'Enregistré ✓' : 'Enregistrer'}
         </button>
@@ -181,6 +259,11 @@ const styles = {
   actions: { display: 'flex', gap: 8 },
   okBtn: { display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, background: '#10b981', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' },
   noBtn: { display: 'flex', alignItems: 'center', gap: 4, padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' },
+  notice: { fontSize: 12, lineHeight: 1.5, padding: 10, borderRadius: 10, marginBottom: 8 },
+  noticeOk: { background: '#ecfdf5', color: '#065f46' },
+  noticeWarn: { background: '#fffbeb', color: '#b45309' },
+  treatedRight: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 },
+  receiptBtn: { background: '#eff6ff', color: '#1d4ed8', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' },
   treatedRow: { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, color: '#475569', padding: '6px 0', borderTop: '1px solid #f1f5f9' },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#1e3a8a', margin: '12px 0 6px' },
   input: { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #dbeafe', fontSize: 14, background: 'white' },

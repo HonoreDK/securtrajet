@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Smartphone, Copy, Check, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Smartphone, Copy, Check, CheckCircle2, Phone } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import { buildUssd, resolveUssd, dialHref, isIOS } from '../lib/ussd'
 
 const PROVIDERS = {
-  orange: { label: 'Orange Money', color: '#FF6600', textColor: '#ffffff', setting: 'pay_orange_number', refHint: 'ex : MP260105.1234.A12345' },
-  mtn: { label: 'MTN Mobile Money', color: '#FFCB05', textColor: '#1a1a1a', setting: 'pay_mtn_number', refHint: 'ex : 1234567890' }
+  orange: { label: 'Orange Money', color: '#FF6600', textColor: '#ffffff', setting: 'pay_orange_number', ussdSetting: 'pay_orange_ussd', refHint: 'ex : MP260105.1234.A12345' },
+  mtn: { label: 'MTN Mobile Money', color: '#FFCB05', textColor: '#1a1a1a', setting: 'pay_mtn_number', ussdSetting: 'pay_mtn_ussd', refHint: 'ex : 1234567890' }
 }
 
 const STATUS = {
@@ -31,6 +32,7 @@ export default function ManualPaymentPanel({ onApproved }) {
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedUssd, setCopiedUssd] = useState(false)
   const knownApproved = useRef(null)
   const onApprovedRef = useRef(onApproved)
   onApprovedRef.current = onApproved
@@ -39,7 +41,7 @@ export default function ManualPaymentPanel({ onApproved }) {
     supabase
       .from('app_settings')
       .select('key, value')
-      .in('key', ['pay_orange_number', 'pay_mtn_number', 'pay_recipient_name'])
+      .in('key', ['pay_orange_number', 'pay_mtn_number', 'pay_recipient_name', 'pay_orange_ussd', 'pay_mtn_ussd'])
       .then(({ data }) => setSettings(Object.fromEntries((data || []).map(s => [s.key, s.value]))))
   }, [])
 
@@ -112,9 +114,21 @@ export default function ManualPaymentPanel({ onApproved }) {
     } catch { /* presse-papiers indisponible : le numéro reste affiché */ }
   }
 
+  const copyUssd = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopiedUssd(true)
+      setTimeout(() => setCopiedUssd(false), 2500)
+    } catch { /* presse-papiers indisponible : le code reste affiché */ }
+  }
+
   const recipient = settings.pay_recipient_name || 'Nova Tech Solution'
   const p = provider ? PROVIDERS[provider] : null
   const payNumber = p ? settings[p.setting] : ''
+  const ussdTemplate = p ? settings[p.ussdSetting] : ''
+  const ussd = p ? resolveUssd(provider, ussdTemplate, payNumber) : null
+  const ussdIsDirect = Boolean(buildUssd(ussdTemplate, payNumber)) // sinon : simple menu principal
+  const ios = isIOS()
 
   return (
     <div>
@@ -141,6 +155,7 @@ export default function ManualPaymentPanel({ onApproved }) {
                   <div style={styles.historyMeta}>
                     {format(new Date(r.created_at), 'dd MMM yyyy, HH:mm', { locale: fr })}
                     {r.status === 'rejected' && r.admin_note ? ` — ${r.admin_note}` : ''}
+                    {r.status === 'approved' && r.receipt_sent_at ? ' — reçu envoyé par e-mail' : ''}
                   </div>
                 </div>
                 <span style={{ ...styles.pill, color: st.color, background: st.bg }}>{st.label}</span>
@@ -175,6 +190,7 @@ export default function ManualPaymentPanel({ onApproved }) {
           <div style={styles.step}>
             <p style={styles.stepTitle}>1. Envoie 2 500 FCFA par {p.label} au :</p>
             {payNumber ? (
+              <>
               <div style={styles.numberBox}>
                 <div>
                   <div style={styles.number}>{payNumber}</div>
@@ -184,6 +200,35 @@ export default function ManualPaymentPanel({ onApproved }) {
                   {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copié' : 'Copier'}
                 </button>
               </div>
+
+              {ussd && (
+                <div style={styles.dialBox}>
+                  {ios ? (
+                    <button
+                      type="button"
+                      style={{ ...styles.dialBtn, background: p.color, color: p.textColor }}
+                      onClick={() => copyUssd(ussd)}
+                    >
+                      {copiedUssd ? <Check size={16} /> : <Copy size={16} />}
+                      {copiedUssd ? 'Code copié' : `Copier le code ${ussd}`}
+                    </button>
+                  ) : (
+                    <a href={dialHref(ussd)} style={{ ...styles.dialBtn, background: p.color, color: p.textColor }}>
+                      <Phone size={16} /> Payer maintenant ({ussd})
+                    </a>
+                  )}
+                  <p style={styles.dialHint}>
+                    {ios
+                      ? "Sur iPhone : ouvre l'app Téléphone, colle le code, puis appuie sur appel."
+                      : 'Le composeur s\'ouvre avec le code déjà saisi : appuie sur appel.'}
+                    {' '}
+                    {ussdIsDirect
+                      ? 'Suis ensuite les instructions et entre ton code secret pour confirmer.'
+                      : `Tu arrives au menu ${p.label} : choisis le transfert d'argent et envoie 2 500 FCFA au numéro ci-dessus.`}
+                  </p>
+                </div>
+              )}
+              </>
             ) : (
               <p style={styles.warn}>
                 Le numéro de paiement {p.label} n'est pas encore renseigné. Contacte l'administrateur.
@@ -267,6 +312,13 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 10,
     background: 'white', color: '#1d4ed8', fontWeight: 600, fontSize: 12, border: '1.5px solid #dbeafe', cursor: 'pointer'
   },
+  dialBox: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 },
+  dialBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%',
+    boxSizing: 'border-box', padding: '14px', borderRadius: 12, fontWeight: 700, fontSize: 15,
+    border: 'none', cursor: 'pointer', textDecoration: 'none'
+  },
+  dialHint: { fontSize: 12, color: '#64748b', lineHeight: 1.5, margin: 0 },
   warn: { fontSize: 12, color: '#b45309', background: '#fffbeb', padding: 10, borderRadius: 10, margin: 0 },
   input: { padding: '12px 14px', borderRadius: 12, border: '1.5px solid #dbeafe', fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 13, margin: 0 },
