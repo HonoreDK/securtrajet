@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Smartphone, Copy, Check, CheckCircle2, Phone } from 'lucide-react'
+import { ArrowLeft, Smartphone, CheckCircle2, Phone } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useAuth } from '../context/AuthContext'
@@ -31,9 +31,6 @@ export default function ManualPaymentPanel({ onApproved }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [copiedUssd, setCopiedUssd] = useState(false)
-  const [dialed, setDialed] = useState(false)
   const knownApproved = useRef(null)
   const onApprovedRef = useRef(onApproved)
   onApprovedRef.current = onApproved
@@ -107,20 +104,11 @@ export default function ManualPaymentPanel({ onApproved }) {
     loadRequests()
   }
 
-  const copyNumber = async (value) => {
-    try {
-      await navigator.clipboard.writeText(value.replace(/\s/g, ''))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch { /* presse-papiers indisponible : le code marchand reste affiché */ }
-  }
-
-  const copyUssd = async (code) => {
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopiedUssd(true)
-      setTimeout(() => setCopiedUssd(false), 2500)
-    } catch { /* presse-papiers indisponible : le code reste affiché */ }
+  // Ouvre l'app Téléphone avec le code déjà saisi. Sur iPhone, certains codes peuvent être ignorés
+  // par le composeur : on copie donc aussi le code pour pouvoir le coller.
+  const dial = (code) => {
+    if (ios) navigator.clipboard?.writeText(code).catch(() => { /* presse-papiers indisponible */ })
+    window.location.href = dialHref(code)
   }
 
   const recipient = settings.pay_recipient_name || 'Nova Tech Solution'
@@ -130,27 +118,13 @@ export default function ManualPaymentPanel({ onApproved }) {
   const ussdIsDirect = p ? Boolean(merchantUssd(provider, payNumber)) : false // sinon : simple menu principal
   const ios = isIOS()
 
-  // Un clic sur l'opérateur : on passe à l'étape suivante et on charge directement le code de
-  // paiement dans le téléphone (composeur pré-rempli, ou code copié sur iPhone). Le parent valide
-  // chez lui avec son code secret, puis revient envoyer sa déclaration à l'administrateur.
+  // Un clic sur l'opérateur : on passe à l'étape suivante, le bouton « Payer » charge le code de
+  // paiement dans le téléphone. Le parent valide chez lui avec son code secret, puis revient
+  // envoyer sa déclaration à l'administrateur.
   const startPayment = (key) => {
-    const prov = PROVIDERS[key]
     setProvider(key)
     setSent(false)
     setError('')
-    setDialed(false)
-    const number = settings[prov.setting]
-    if (!number) return
-    const code = resolveUssd(key, number)
-    if (!code) return
-    setDialed(true)
-    if (ios) {
-      copyUssd(code)
-    } else {
-      const link = document.createElement('a')
-      link.href = dialHref(code)
-      link.click()
-    }
   }
 
   return (
@@ -216,54 +190,28 @@ export default function ManualPaymentPanel({ onApproved }) {
 
           <div style={styles.step}>
             <p style={styles.stepTitle}>1. Valide le paiement de 2 500 FCFA par {p.label} :</p>
-            {dialed && (
-              <p style={styles.dialedNote}>
-                {ios
-                  ? "Le code de paiement est copié : ouvre l'app Téléphone, colle-le et appuie sur appel, puis valide avec ton code secret."
-                  : 'Le code de paiement vient de s\'ouvrir dans ton téléphone : appuie sur appel, puis valide avec ton code secret.'}
-              </p>
-            )}
-            {payNumber ? (
-              <>
-              <div style={styles.numberBox}>
-                <div>
-                  <div style={styles.recipient}>Code marchand</div>
-                  <div style={styles.number}>{payNumber}</div>
-                  <div style={styles.recipient}>au nom de {recipient}</div>
-                </div>
-                <button type="button" style={styles.copyBtn} onClick={() => copyNumber(payNumber)}>
-                  {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copié' : 'Copier'}
+            {payNumber && ussd ? (
+              <div style={styles.dialBox}>
+                <button
+                  type="button"
+                  style={{ ...styles.dialBtn, background: p.color, color: p.textColor }}
+                  onClick={() => dial(ussd)}
+                >
+                  <Phone size={16} /> Payer 2 500 FCFA avec {p.label}
                 </button>
-              </div>
-
-              {ussd && (
-                <div style={styles.dialBox}>
-                  {ios ? (
-                    <button
-                      type="button"
-                      style={{ ...styles.dialBtn, background: p.color, color: p.textColor }}
-                      onClick={() => copyUssd(ussd)}
-                    >
-                      {copiedUssd ? <Check size={16} /> : <Copy size={16} />}
-                      {copiedUssd ? 'Code copié' : `Copier le code ${ussd}`}
-                    </button>
-                  ) : (
-                    <a href={dialHref(ussd)} style={{ ...styles.dialBtn, background: p.color, color: p.textColor }}>
-                      <Phone size={16} /> Payer maintenant ({ussd})
-                    </a>
-                  )}
+                <p style={styles.dialHint}>
+                  Le code de paiement se charge dans l'app Téléphone (au nom de {recipient}) : appuie sur appel.
+                  {' '}
+                  {ussdIsDirect
+                    ? 'Suis ensuite les instructions et entre ton code secret pour confirmer.'
+                    : `Tu arrives au menu ${p.label} : choisis le paiement marchand et envoie 2 500 FCFA.`}
+                </p>
+                {ios && (
                   <p style={styles.dialHint}>
-                    {ios
-                      ? "Sur iPhone : ouvre l'app Téléphone, colle le code, puis appuie sur appel."
-                      : 'Le composeur s\'ouvre avec le code déjà saisi : appuie sur appel.'}
-                    {' '}
-                    {ussdIsDirect
-                      ? 'Suis ensuite les instructions et entre ton code secret pour confirmer.'
-                      : `Tu arrives au menu ${p.label} : choisis le transfert d'argent et envoie 2 500 FCFA au code marchand ci-dessus.`}
+                    Si le code n'apparaît pas dans le Téléphone, il est déjà copié : colle-le puis appuie sur appel.
                   </p>
-                </div>
-              )}
-              </>
+                )}
+              </div>
             ) : (
               <p style={styles.warn}>
                 Le code marchand {p.label} n'est pas encore renseigné. Contacte l'administrateur.
