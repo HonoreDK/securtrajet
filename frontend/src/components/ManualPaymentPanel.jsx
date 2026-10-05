@@ -33,6 +33,7 @@ export default function ManualPaymentPanel({ onApproved }) {
   const [sent, setSent] = useState(false)
   const [copied, setCopied] = useState(false)
   const [copiedUssd, setCopiedUssd] = useState(false)
+  const [dialed, setDialed] = useState(false)
   const knownApproved = useRef(null)
   const onApprovedRef = useRef(onApproved)
   onApprovedRef.current = onApproved
@@ -130,6 +131,29 @@ export default function ManualPaymentPanel({ onApproved }) {
   const ussdIsDirect = Boolean(buildUssd(ussdTemplate, payNumber)) // sinon : simple menu principal
   const ios = isIOS()
 
+  // Un clic sur l'opérateur : on passe à l'étape suivante et on charge directement le code de
+  // paiement dans le téléphone (composeur pré-rempli, ou code copié sur iPhone). Le parent valide
+  // chez lui avec son code secret, puis revient envoyer sa déclaration à l'administrateur.
+  const startPayment = (key) => {
+    const prov = PROVIDERS[key]
+    setProvider(key)
+    setSent(false)
+    setError('')
+    setDialed(false)
+    const number = settings[prov.setting]
+    if (!number) return
+    const code = resolveUssd(key, settings[prov.ussdSetting], number)
+    if (!code) return
+    setDialed(true)
+    if (ios) {
+      copyUssd(code)
+    } else {
+      const link = document.createElement('a')
+      link.href = dialHref(code)
+      link.click()
+    }
+  }
+
   return (
     <div>
       {sent && (
@@ -172,11 +196,15 @@ export default function ManualPaymentPanel({ onApproved }) {
               key={key}
               type="button"
               style={{ ...styles.providerBtn, background: prov.color, color: prov.textColor }}
-              onClick={() => { setProvider(key); setSent(false); setError('') }}
+              onClick={() => startPayment(key)}
             >
               <Smartphone size={18} /> Payer avec {prov.label}
             </button>
           ))}
+          <p style={styles.dialHint}>
+            Appuie sur ton opérateur : le code de paiement se charge dans ton téléphone, il te reste à le
+            valider avec ton code secret.
+          </p>
         </div>
       ) : (
         <form onSubmit={submit} style={styles.form}>
@@ -188,7 +216,14 @@ export default function ManualPaymentPanel({ onApproved }) {
           </div>
 
           <div style={styles.step}>
-            <p style={styles.stepTitle}>1. Envoie 2 500 FCFA par {p.label} au :</p>
+            <p style={styles.stepTitle}>1. Valide le paiement de 2 500 FCFA par {p.label} :</p>
+            {dialed && (
+              <p style={styles.dialedNote}>
+                {ios
+                  ? "Le code de paiement est copié : ouvre l'app Téléphone, colle-le et appuie sur appel, puis valide avec ton code secret."
+                  : 'Le code de paiement vient de s\'ouvrir dans ton téléphone : appuie sur appel, puis valide avec ton code secret.'}
+              </p>
+            )}
             {payNumber ? (
               <>
               <div style={styles.numberBox}>
@@ -237,7 +272,7 @@ export default function ManualPaymentPanel({ onApproved }) {
           </div>
 
           <div style={styles.step}>
-            <p style={styles.stepTitle}>2. Indique ensuite ces informations (tu les trouves dans le SMS de confirmation) :</p>
+            <p style={styles.stepTitle}>2. Une fois le paiement validé, reviens ici et indique ces informations (tu les trouves dans le SMS de confirmation) :</p>
             <input
               type="tel"
               inputMode="numeric"
@@ -262,7 +297,7 @@ export default function ManualPaymentPanel({ onApproved }) {
             disabled={busy || !payNumber}
             style={{ ...styles.submit, background: p.color, color: p.textColor, opacity: busy || !payNumber ? 0.6 : 1 }}
           >
-            {busy ? 'Envoi...' : "J'ai payé 2 500 FCFA"}
+            {busy ? 'Envoi...' : "J'ai payé : envoyer pour vérification"}
           </button>
         </form>
       )}
@@ -319,6 +354,7 @@ const styles = {
     border: 'none', cursor: 'pointer', textDecoration: 'none'
   },
   dialHint: { fontSize: 12, color: '#64748b', lineHeight: 1.5, margin: 0 },
+  dialedNote: { fontSize: 12, color: '#065f46', background: '#ecfdf5', padding: 10, borderRadius: 10, margin: 0, lineHeight: 1.5 },
   warn: { fontSize: 12, color: '#b45309', background: '#fffbeb', padding: 10, borderRadius: 10, margin: 0 },
   input: { padding: '12px 14px', borderRadius: 12, border: '1.5px solid #dbeafe', fontSize: 14 },
   errorText: { color: '#ef4444', fontSize: 13, margin: 0 },
