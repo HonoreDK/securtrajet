@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import AdminPayments from '../components/AdminPayments'
 import { ArrowLeft, Check, Shield, User } from 'lucide-react'
 
 export default function Admin() {
@@ -77,6 +78,8 @@ export default function Admin() {
       </header>
 
       <div style={{ padding: 20, maxWidth: 900, margin: '0 auto' }}>
+        <AdminPayments />
+
         <h3 style={{ marginBottom: 16 }}>Utilisateurs ({users.length})</h3>
 
         {loading ? <p>Chargement...</p> : (

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
-import PaymentPanel from '../components/PaymentPanel'
+import SubscriptionPayment from '../components/SubscriptionPayment'
 import Avatar from '../components/Avatar'
 import GeofenceModal from '../components/GeofenceModal'
 import { uploadAvatar, fileExt } from '../lib/avatar'
@@ -26,7 +26,7 @@ const SUB_STATUS = {
 }
 
 export default function Dashboard() {
-  const { user, profile, subscription, refreshProfile, logout } = useAuth()
+  const { user, profile, subscription, logout } = useAuth()
   const navigate = useNavigate()
   const [children, setChildren] = useState([])
   const [alerts, setAlerts] = useState([])
@@ -589,7 +589,7 @@ export default function Dashboard() {
                         ? 'Renouveler (+30 jours)'
                         : 'Activer mon abonnement'}
                   </p>
-                  <PaymentPanel onSuccess={refreshProfile} />
+                  <SubscriptionPayment />
                 </div>
               </div>
             </div>

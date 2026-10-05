@@ -1,9 +1,9 @@
 import { useAuth } from '../context/AuthContext'
-import PaymentPanel from './PaymentPanel'
+import SubscriptionPayment from './SubscriptionPayment'
 import { Shield, Clock, CreditCard, AlertTriangle } from 'lucide-react'
 
 export default function SubscriptionGate({ children }) {
-  const { profile, subscription, refreshProfile, loading } = useAuth()
+  const { profile, subscription, loading } = useAuth()
 
   if (loading) {
     return (
@@ -51,7 +51,7 @@ export default function SubscriptionGate({ children }) {
           <p style={styles.sub}>
             Accès illimité : suivi GPS, alertes, géofencing, historique...
           </p>
-          <PaymentPanel onSuccess={refreshProfile} />
+          <SubscriptionPayment />
           <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
             Paiement sécurisé • Annulation possible à tout moment
           </p>
