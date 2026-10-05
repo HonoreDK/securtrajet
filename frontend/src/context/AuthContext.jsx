@@ -1,19 +1,59 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
+
+const CLOCK_MS = 30 * 1000
+
+// Statut d'abonnement calculé à partir du profil et de l'heure courante : il est recalculé
+// régulièrement, pour qu'un abonnement qui se termine pendant que l'app est ouverte bloque l'accès.
+function computeSubscription(data, now) {
+  // Un abonnement "actif" donne accès jusqu'à sa date de fin (null = ancien abonnement sans expiration)
+  const activeValid =
+    data.subscription_status === 'active' &&
+    (!data.subscription_ends_at || new Date(data.subscription_ends_at) > now)
+  const trialValid = data.subscription_status === 'trial' && new Date(data.trial_ends_at) > now
+  const status =
+    data.subscription_status === 'active' && !activeValid ? 'expired' : data.subscription_status
+
+  const hasAccess = data.role === 'admin' || Boolean(data.is_approved && (trialValid || activeValid))
+
+  // Pour le message « abonnement terminé » : fin d'essai ou fin d'abonnement payant
+  const wasTrial = data.subscription_status === 'trial'
+
+  const trialDaysLeft = wasTrial
+    ? Math.max(0, Math.ceil((new Date(data.trial_ends_at) - now) / (1000 * 60 * 60 * 24)))
+    : null
+
+  return {
+    status,
+    isApproved: data.is_approved,
+    hasAccess,
+    trialDaysLeft,
+    trialEndsAt: data.trial_ends_at,
+    endsAt: data.subscription_ends_at,
+    endedAt: wasTrial ? data.trial_ends_at : data.subscription_ends_at,
+    endedWasTrial: wasTrial
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [subscription, setSubscription] = useState(null)
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), CLOCK_MS)
+    return () => clearInterval(timer)
+  }, [])
+
+  const subscription = useMemo(() => (profile ? computeSubscription(profile, now) : null), [profile, now])
 
   // Charger le profile + statut abonnement
   const loadProfile = async (userId) => {
     if (!userId) {
       setProfile(null)
-      setSubscription(null)
       return
     }
     const { data, error } = await supabase
@@ -28,34 +68,6 @@ export function AuthProvider({ children }) {
       return
     }
     setProfile(data)
-
-    // Un abonnement "actif" donne accès jusqu'à sa date de fin (null = ancien abonnement sans expiration)
-    const activeValid =
-      data.subscription_status === 'active' &&
-      (!data.subscription_ends_at || new Date(data.subscription_ends_at) > new Date())
-    const status =
-      data.subscription_status === 'active' && !activeValid ? 'expired' : data.subscription_status
-
-    // Statut d'accès
-    const hasAccess =
-      data.role === 'admin' ||
-      (data.is_approved && (
-        (data.subscription_status === 'trial' && new Date(data.trial_ends_at) > new Date()) ||
-        activeValid
-      ))
-
-    const trialDaysLeft = data.subscription_status === 'trial'
-      ? Math.max(0, Math.ceil((new Date(data.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)))
-      : null
-
-    setSubscription({
-      status,
-      isApproved: data.is_approved,
-      hasAccess,
-      trialDaysLeft,
-      trialEndsAt: data.trial_ends_at,
-      endsAt: data.subscription_ends_at
-    })
   }
 
   useEffect(() => {
@@ -74,7 +86,6 @@ export function AuthProvider({ children }) {
           await loadProfile(session.user.id)
         } else {
           setProfile(null)
-          setSubscription(null)
         }
         setLoading(false)
       }
@@ -108,7 +119,6 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
-    setSubscription(null)
   }
 
   // Admin : approuver un parent

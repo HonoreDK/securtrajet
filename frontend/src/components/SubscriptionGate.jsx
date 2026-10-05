@@ -1,9 +1,11 @@
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 import { useAuth } from '../context/AuthContext'
 import SubscriptionPayment from './SubscriptionPayment'
-import { Shield, Clock, CreditCard, AlertTriangle } from 'lucide-react'
+import { Clock, CreditCard, AlertTriangle } from 'lucide-react'
 
 export default function SubscriptionGate({ children }) {
-  const { profile, subscription, loading } = useAuth()
+  const { profile, subscription, loading, logout } = useAuth()
 
   if (loading) {
     return (
@@ -38,11 +40,15 @@ export default function SubscriptionGate({ children }) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <CreditCard size={48} color="#1d4ed8" />
-          <h2 style={styles.title}>Abonnement requis</h2>
+          <CreditCard size={48} color="#ef4444" />
+          <h2 style={{ ...styles.title, color: '#b91c1c' }}>
+            {subscription.endedWasTrial ? 'Ta période d\'essai est terminée' : 'Ton abonnement est terminé'}
+          </h2>
           <p style={styles.text}>
-            Votre période d'essai ou votre abonnement est arrivé à son terme.
-            Pour continuer à protéger vos enfants, activez ou renouvelez l'abonnement.
+            {subscription.endedAt
+              ? `${subscription.endedWasTrial ? 'Ton essai gratuit' : 'Ton abonnement'} a pris fin le ${format(new Date(subscription.endedAt), 'd MMMM yyyy', { locale: fr })}. `
+              : ''}
+            Pour continuer à suivre tes enfants, paie ton abonnement : l'accès revient dès que le paiement est validé.
           </p>
           <div style={styles.priceBox}>
             <span style={styles.price}>2 500</span>
@@ -55,6 +61,7 @@ export default function SubscriptionGate({ children }) {
           <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
             Paiement sécurisé • Annulation possible à tout moment
           </p>
+          <button type="button" style={styles.logoutBtn} onClick={logout}>Se déconnecter</button>
         </div>
       </div>
     )
@@ -109,6 +116,15 @@ const styles = {
     fontWeight: 600,
     fontSize: 15,
     border: 'none',
+    cursor: 'pointer'
+  },
+  logoutBtn: {
+    marginTop: 12,
+    background: 'none',
+    border: 'none',
+    color: '#64748b',
+    fontSize: 13,
+    textDecoration: 'underline',
     cursor: 'pointer'
   },
   trialBanner: {
