@@ -45,10 +45,17 @@ Deno.serve(async (req) => {
       .eq("parent_id", alert.parent_id);
     if (subsError) throw subsError;
 
+    // Les alertes d'abonnement destinées à un administrateur (paiement à vérifier) ouvrent la page Administration.
+    let url = alert.child_id ? `/child/${alert.child_id}` : "/dashboard";
+    if (alert.type === "subscription") {
+      const { data: owner } = await supabase.from("profiles").select("role").eq("id", alert.parent_id).single();
+      if (owner?.role === "admin") url = "/admin";
+    }
+
     const payload = JSON.stringify({
       title: alert.title || "SecurTrajet",
       body: alert.message,
-      url: alert.child_id ? `/child/${alert.child_id}` : "/dashboard"
+      url
     });
 
     let sent = 0;
