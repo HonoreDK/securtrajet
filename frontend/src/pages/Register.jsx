@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logoApp from '../assets/logo-app.jpg'
+import { authErrorMessage } from '../lib/mfa'
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -33,7 +34,7 @@ export default function Register() {
       })
       setSuccess(true)
     } catch (err) {
-      setError(err.message || 'Erreur lors de l\'inscription')
+      setError(authErrorMessage(err, "Impossible de créer le compte, réessaie."))
     } finally {
       setLoading(false)
     }
@@ -46,15 +47,14 @@ export default function Register() {
           <img src={logoApp} alt="SecurTrajet" style={styles.logoIcon} />
           <h2 style={{ color: '#1d4ed8', marginBottom: 12 }}>Compte créé !</h2>
           <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.5, marginBottom: 16 }}>
-            Un email de confirmation vous a été envoyé (si activé).
-            Votre compte est maintenant <strong>en attente de validation</strong> par un administrateur.
+            Aucun e-mail à confirmer : ton compte est maintenant <strong>en attente de validation</strong> par un administrateur.
           </p>
           <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
             Une fois approuvé, vous bénéficierez de <strong>30 jours gratuits</strong>,
             puis l'abonnement sera de <strong>2 500 FCFA / mois</strong>.
           </p>
-          <button style={styles.button} onClick={() => navigate('/login')}>
-            Aller à la connexion
+          <button style={styles.button} onClick={() => navigate('/dashboard')}>
+            Continuer
           </button>
         </div>
       </div>

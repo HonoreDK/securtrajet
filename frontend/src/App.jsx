@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import SubscriptionGate from './components/SubscriptionGate'
+import MfaChallenge from './components/MfaChallenge'
 import ChatWidget from './components/ChatWidget'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -11,7 +12,7 @@ import Settings from './pages/Settings'
 import Admin from './pages/Admin'
 
 function PrivateRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, loading, mfaRequired } = useAuth()
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -19,7 +20,9 @@ function PrivateRoute({ children }) {
       </div>
     )
   }
-  return user ? children : <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/login" replace />
+  // Double authentification activée : le code est exigé avant d'afficher quoi que ce soit
+  return mfaRequired ? <MfaChallenge /> : children
 }
 
 export default function App() {

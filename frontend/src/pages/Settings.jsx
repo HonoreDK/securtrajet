@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { uploadAvatar, fileExt } from '../lib/avatar'
 import { isPushSupported, getPushPermissionState, isSubscribedToPush, subscribeToPush, unsubscribeFromPush } from '../lib/push'
 import Avatar from '../components/Avatar'
+import TwoFactorSetup from '../components/TwoFactorSetup'
 import { ArrowLeft, Shield, LogOut, Camera, Bell, BellOff } from 'lucide-react'
 
 export default function Settings() {
@@ -158,6 +159,8 @@ export default function Settings() {
           )}
           {pushError && <p style={{ fontSize: 12, color: '#ef4444' }}>{pushError}</p>}
         </div>
+
+        <TwoFactorSetup />
 
         {profile?.role === 'admin' && (
           <button

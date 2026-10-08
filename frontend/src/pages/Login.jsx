@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { MapPin } from 'lucide-react'
+import { MapPin, Eye, EyeOff } from 'lucide-react'
+import { authErrorMessage } from '../lib/mfa'
 import logoApp from '../assets/logo-app.jpg'
 
 export default function Login() {
@@ -9,6 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -20,7 +22,7 @@ export default function Login() {
       await login(email, password)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.message || 'Erreur de connexion')
+      setError(authErrorMessage(err, 'Connexion impossible, réessaie.'))
     } finally {
       setLoading(false)
     }
@@ -47,19 +49,31 @@ export default function Login() {
               style={styles.input}
               required
               placeholder="votre@email.com"
+              autoComplete="email"
             />
           </div>
 
           <div style={styles.field}>
             <label style={styles.label}>Mot de passe</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              style={styles.input}
-              required
-              placeholder="••••••••"
-            />
+            <div style={styles.passwordWrap}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                style={{ ...styles.input, width: '100%', paddingRight: 46 }}
+                required
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                style={styles.eye}
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" style={styles.button} disabled={loading}>
@@ -111,6 +125,11 @@ const styles = {
   input: {
     padding: '12px 16px', borderRadius: 12,
     border: '1.5px solid #dbeafe', fontSize: 15
+  },
+  passwordWrap: { position: 'relative' },
+  eye: {
+    position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+    background: 'transparent', border: 'none', color: '#64748b', padding: 8, cursor: 'pointer', display: 'flex'
   },
   button: {
     marginTop: 8, padding: '14px', borderRadius: 12,
