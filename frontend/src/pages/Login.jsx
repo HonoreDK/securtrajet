@@ -6,7 +6,7 @@ import { authErrorMessage } from '../lib/mfa'
 import logoApp from '../assets/logo-app.jpg'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,7 +19,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
+      await login(identifier, password)
       navigate('/dashboard')
     } catch (err) {
       setError(authErrorMessage(err, 'Connexion impossible, réessaie.'))
@@ -41,15 +41,18 @@ export default function Login() {
           {error && <div style={styles.error}>{error}</div>}
           
           <div style={styles.field}>
-            <label style={styles.label}>Email</label>
+            <label style={styles.label}>E-mail ou numéro de téléphone</label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text"
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               style={styles.input}
               required
-              placeholder="votre@email.com"
-              autoComplete="email"
+              placeholder="votre@email.com ou 691234567"
+              autoComplete="username"
             />
           </div>
 

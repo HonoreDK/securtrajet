@@ -6,6 +6,7 @@ import { uploadAvatar, fileExt } from '../lib/avatar'
 import { isPushSupported, getPushPermissionState, isSubscribedToPush, subscribeToPush, unsubscribeFromPush } from '../lib/push'
 import Avatar from '../components/Avatar'
 import TwoFactorSetup from '../components/TwoFactorSetup'
+import { normalizePhone, formatPhone } from '../lib/phone'
 import { ArrowLeft, Shield, LogOut, Camera, Bell, BellOff } from 'lucide-react'
 
 export default function Settings() {
@@ -15,6 +16,30 @@ export default function Settings() {
   const [pushState, setPushState] = useState('checking') // checking | unsupported | denied | off | on
   const [pushBusy, setPushBusy] = useState(false)
   const [pushError, setPushError] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
+  const [phoneBusy, setPhoneBusy] = useState(false)
+  const [phoneMsg, setPhoneMsg] = useState(null) // { ok: boolean, text }
+
+  useEffect(() => { setPhoneInput(profile?.phone ? formatPhone(profile.phone) : '') }, [profile?.phone])
+
+  const savePhone = async () => {
+    setPhoneMsg(null)
+    const value = phoneInput.trim()
+    const phone = value ? normalizePhone(value) : null
+    if (value && !phone) {
+      setPhoneMsg({ ok: false, text: 'Numéro invalide : 9 chiffres commençant par 6 (ex : 691234567).' })
+      return
+    }
+    setPhoneBusy(true)
+    const { error } = await supabase.from('profiles').update({ phone }).eq('id', user.id)
+    setPhoneBusy(false)
+    if (error) {
+      setPhoneMsg({ ok: false, text: error.code === '23505' ? 'Ce numéro est déjà utilisé par un autre compte.' : error.message || 'Enregistrement impossible.' })
+      return
+    }
+    await refreshProfile()
+    setPhoneMsg({ ok: true, text: phone ? 'Numéro enregistré : tu peux te connecter avec.' : 'Numéro supprimé.' })
+  }
 
   useEffect(() => {
     const check = async () => {
@@ -117,6 +142,29 @@ export default function Settings() {
           </div>
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Nom :</strong> {profile?.first_name} {profile?.last_name}</p>
           <p style={{ fontSize: 14, marginBottom: 6 }}><strong>Email :</strong> {user?.email}</p>
+          <div style={{ marginBottom: 6 }}>
+            <label style={{ fontSize: 14, fontWeight: 700 }}>Téléphone (connexion possible avec ce numéro) :</label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={phoneInput}
+                onChange={e => setPhoneInput(e.target.value)}
+                placeholder="691234567"
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #dbeafe', fontSize: 14 }}
+              />
+              <button
+                onClick={savePhone}
+                disabled={phoneBusy}
+                style={{ padding: '10px 14px', borderRadius: 10, border: 'none', background: '#1d4ed8', color: 'white', fontWeight: 600, fontSize: 13, opacity: phoneBusy ? 0.7 : 1 }}
+              >
+                {phoneBusy ? '...' : 'Enregistrer'}
+              </button>
+            </div>
+            {phoneMsg && (
+              <p style={{ fontSize: 12, marginTop: 6, color: phoneMsg.ok ? '#059669' : '#ef4444' }}>{phoneMsg.text}</p>
+            )}
+          </div>
           <p style={{ fontSize: 14 }}><strong>Rôle :</strong> {profile?.role === 'admin' ? 'Administrateur' : 'Parent'}</p>
         </div>
 

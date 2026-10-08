@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { needsMfa } from '../lib/mfa'
+import { invokeFunction } from '../lib/functions'
+import { isEmailIdentifier, normalizePhone } from '../lib/phone'
 
 const AuthContext = createContext(null)
 
@@ -98,12 +100,12 @@ export function AuthProvider({ children }) {
     return () => authSub.unsubscribe()
   }, [])
 
-  const register = async ({ email, password, firstName, lastName }) => {
+  const register = async ({ email, password, firstName, lastName, phone }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { first_name: firstName, last_name: lastName }
+        data: { first_name: firstName, last_name: lastName, phone: normalizePhone(phone) }
       }
     })
     if (error) throw error
@@ -111,9 +113,26 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+  // Connexion par e-mail, ou par numéro de téléphone si l'identifiant ne contient pas de « @ »
+  const login = async (identifier, password) => {
+    const id = String(identifier ?? '').trim()
+    let data
+    if (isEmailIdentifier(id)) {
+      const result = await supabase.auth.signInWithPassword({ email: id, password })
+      if (result.error) throw result.error
+      data = result.data
+    } else {
+      const phone = normalizePhone(id)
+      if (!phone) throw new Error('Numéro invalide : 9 chiffres commençant par 6 (ex : 691234567).')
+      // La fonction serveur retrouve le compte à partir du numéro (l'e-mail ne transite pas par le navigateur)
+      const tokens = await invokeFunction('phone-login', { phone, password })
+      const result = await supabase.auth.setSession({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token
+      })
+      if (result.error) throw result.error
+      data = result.data
+    }
     await loadProfile(data.user.id)
     return data
   }

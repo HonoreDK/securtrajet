@@ -3,11 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logoApp from '../assets/logo-app.jpg'
 import { authErrorMessage } from '../lib/mfa'
+import { normalizePhone } from '../lib/phone'
+import { supabase } from '../lib/supabase'
 
 export default function Register() {
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
+    phone: '',
     email: '',
     password: ''
   })
@@ -24,13 +27,24 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    const phone = normalizePhone(form.phone)
+    if (!phone) {
+      setError('Numéro invalide : 9 chiffres commençant par 6 (ex : 691234567).')
+      return
+    }
     setLoading(true)
     try {
+      const { data: available } = await supabase.rpc('phone_available', { p_phone: phone })
+      if (available === false) {
+        setError('Ce numéro est déjà utilisé par un autre compte : connecte-toi.')
+        return
+      }
       await register({
         email: form.email,
         password: form.password,
         firstName: form.firstName,
-        lastName: form.lastName
+        lastName: form.lastName,
+        phone
       })
       setSuccess(true)
     } catch (err) {
@@ -82,6 +96,11 @@ export default function Register() {
               <label style={styles.label}>Nom</label>
               <input name="lastName" value={form.lastName} onChange={handleChange} style={styles.input} required />
             </div>
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Numéro de téléphone</label>
+            <input type="tel" inputMode="numeric" name="phone" value={form.phone} onChange={handleChange} style={styles.input} required placeholder="691234567" autoComplete="tel-national" />
           </div>
 
           <div style={styles.field}>
