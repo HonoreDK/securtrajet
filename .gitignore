@@ -22,3 +22,8 @@ supabase/.temp/
 !.vscode/extensions.json
 .idea
 .DS_Store
+
+# Configuration locale des outils de développement
+.claude/
+CLAUDE.md
+CLAUDE.local.md
