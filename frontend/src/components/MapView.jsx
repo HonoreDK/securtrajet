@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, LayersControl, LayerGroup, useMap } from 'react-leaflet'
+import { useEffect, useMemo, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, LayersControl, LayerGroup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 
 // Fix default marker icons
@@ -28,21 +28,43 @@ function createAvatarIcon(letter, color, photoUrl) {
   })
 }
 
-function FitBounds({ positions }) {
+// Pastille bleue « Moi » pour la position du parent
+const parentIcon = L.divIcon({
+  className: 'custom-marker',
+  html: '<div style="width:18px;height:18px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 0 0 6px rgba(37,99,235,0.25),0 2px 8px rgba(0,0,0,0.3);"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9]
+})
+
+function FitBounds({ positions, disabled }) {
   const map = useMap()
   useEffect(() => {
-    if (positions.length === 0) return
+    if (disabled || positions.length === 0) return
     if (positions.length === 1) {
       map.setView([positions[0].lat, positions[0].lng], 15)
     } else {
       const bounds = L.latLngBounds(positions.map(p => [p.lat, p.lng]))
       map.fitBounds(bounds, { padding: [40, 40] })
     }
-  }, [positions, map])
+  }, [positions, disabled, map])
   return null
 }
 
-export default function MapView({ children, positions = {}, geofences = [], selectedId, onSelect }) {
+// Cadre l'itinéraire en entier à son apparition, ou quand on change d'enfant (pas à chaque déplacement)
+function FitRoute({ route, routeKey }) {
+  const map = useMap()
+  const routeRef = useRef(route)
+  routeRef.current = route
+  const hasRoute = Boolean(route)
+  useEffect(() => {
+    const r = routeRef.current
+    if (!r || r.coords.length < 2) return
+    map.fitBounds(L.latLngBounds(r.coords), { padding: [50, 50] })
+  }, [routeKey, hasRoute, map])
+  return null
+}
+
+export default function MapView({ children, positions = {}, geofences = [], selectedId, onSelect, parentPosition = null, route = null }) {
   const markers = useMemo(() => {
     return children.map(child => {
       const pos = positions[child.id]
@@ -96,7 +118,33 @@ export default function MapView({ children, positions = {}, geofences = [], sele
           </LayerGroup>
         </LayersControl.BaseLayer>
       </LayersControl>
-      <FitBounds positions={markers} />
+      <FitBounds positions={markers} disabled={Boolean(route)} />
+      <FitRoute route={route} routeKey={selectedId} />
+
+      {route && route.coords.length > 1 && (
+        <>
+          <Polyline positions={route.coords} pathOptions={{ color: 'white', weight: 9, opacity: 0.9 }} />
+          <Polyline
+            positions={route.coords}
+            pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.95, dashArray: route.approx ? '8 10' : undefined }}
+          />
+        </>
+      )}
+
+      {parentPosition && (
+        <>
+          {parentPosition.accuracy > 0 && parentPosition.accuracy < 500 && (
+            <Circle
+              center={[parentPosition.lat, parentPosition.lng]}
+              radius={parentPosition.accuracy}
+              pathOptions={{ color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.1, weight: 1 }}
+            />
+          )}
+          <Marker position={[parentPosition.lat, parentPosition.lng]} icon={parentIcon} zIndexOffset={1000}>
+            <Popup><strong>Ma position</strong></Popup>
+          </Marker>
+        </>
+      )}
 
       {geofences.filter(g => g.is_active).map(g => (
         <Circle

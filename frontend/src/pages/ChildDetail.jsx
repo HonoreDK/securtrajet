@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import MapView from '../components/MapView'
 import Avatar from '../components/Avatar'
+import RouteCard from '../components/RouteCard'
+import { useParentLocation, useRoute } from '../lib/location'
 import { ArrowLeft, Battery, Wifi, WifiOff, Clock, Radio, Check, X } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -60,6 +62,15 @@ export default function ChildDetail() {
     resolve()
     return () => { cancelled = true }
   }, [history])
+
+  const parentLocation = useParentLocation()
+  const [routeOn, setRouteOn] = useState(true)
+  const latest = history[0] || null
+  const { route, loading: routeLoading } = useRoute(
+    parentLocation.position,
+    latest ? { lat: latest.latitude, lng: latest.longitude } : null,
+    routeOn
+  )
 
   if (!child) return null
 
@@ -210,7 +221,25 @@ export default function ChildDetail() {
         </div>
 
         <div style={{ height: 320, borderRadius: 16, overflow: 'hidden', marginBottom: 16, boxShadow: '0 4px 16px rgba(29, 78, 216,0.08)' }}>
-          <MapView children={[child]} positions={position ? { [child.id]: position } : {}} selectedId={child.id} />
+          <MapView
+            children={[child]}
+            positions={position ? { [child.id]: position } : {}}
+            selectedId={child.id}
+            parentPosition={parentLocation.position}
+            route={routeOn ? route : null}
+          />
+        </div>
+
+        <div style={{ background: 'white', borderRadius: 16, padding: '4px 20px 20px', marginBottom: 16 }}>
+          <RouteCard
+            childName={child.first_name}
+            location={parentLocation}
+            route={route}
+            loading={routeLoading}
+            childPosition={position}
+            enabled={routeOn}
+            onToggle={() => setRouteOn(v => !v)}
+          />
         </div>
 
         <div style={{ background: 'white', borderRadius: 16, padding: 20 }}>

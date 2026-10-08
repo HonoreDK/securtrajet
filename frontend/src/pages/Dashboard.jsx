@@ -6,6 +6,8 @@ import MapView from '../components/MapView'
 import SubscriptionPayment from '../components/SubscriptionPayment'
 import Avatar from '../components/Avatar'
 import GeofenceModal from '../components/GeofenceModal'
+import RouteCard from '../components/RouteCard'
+import { useParentLocation, useRoute } from '../lib/location'
 import { uploadAvatar, fileExt } from '../lib/avatar'
 import logoApp from '../assets/logo-app.jpg'
 import {
@@ -41,6 +43,13 @@ export default function Dashboard() {
   const [savingChild, setSavingChild] = useState(false)
   const [geofenceModal, setGeofenceModal] = useState(null) // null = fermé, {} = création, {...} = édition
   const [activeTab, setActiveTab] = useState('carte')
+  const [routeOn, setRouteOn] = useState(true)
+
+  // Position du parent et itinéraire jusqu'à l'enfant sélectionné
+  const parentLocation = useParentLocation()
+  const selectedPos = selectedChild ? positions[selectedChild] : null
+  const childPoint = selectedPos ? { lat: selectedPos.latitude, lng: selectedPos.longitude } : null
+  const { route, loading: routeLoading } = useRoute(parentLocation.position, childPoint, routeOn && activeTab === 'carte')
 
   const refresh = useCallback(async () => {
     if (!user) return
@@ -315,6 +324,8 @@ export default function Dashboard() {
                   geofences={geofences}
                   selectedId={selectedChild}
                   onSelect={setSelectedChild}
+                  parentPosition={parentLocation.position}
+                  route={routeOn ? route : null}
                 />
               </div>
 
@@ -368,6 +379,16 @@ export default function Dashboard() {
                       </p>
                     </div>
                   )}
+
+                  <RouteCard
+                    childName={currentChild.first_name}
+                    location={parentLocation}
+                    route={route}
+                    loading={routeLoading}
+                    childPosition={position}
+                    enabled={routeOn}
+                    onToggle={() => setRouteOn(v => !v)}
+                  />
 
                   <button
                     style={styles.detailBtn}
