@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logoApp from '../assets/logo-app.jpg'
 import { authErrorMessage } from '../lib/mfa'
+import GoogleButton, { OrDivider } from '../components/GoogleButton'
 import { normalizePhone } from '../lib/phone'
 import { supabase } from '../lib/supabase'
 
@@ -83,6 +84,9 @@ export default function Register() {
           <h1 style={styles.title}>Créer un compte</h1>
           <p style={styles.subtitle}>1 mois gratuit après validation</p>
         </div>
+
+        <GoogleButton label="S'inscrire avec Google" onError={setError} />
+        <OrDivider />
 
         <form onSubmit={handleSubmit} style={styles.form}>
           {error && <div style={styles.error}>{error}</div>}
