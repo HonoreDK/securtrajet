@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { authErrorMessage } from '../lib/mfa'
 
@@ -19,8 +19,16 @@ export default function GoogleButton({ label = 'Continuer avec Google', onError 
   const { loginWithGoogle } = useAuth()
   const [busy, setBusy] = useState(false)
 
+  // Au retour sur la page (bouton « retour », fermeture de la fenêtre Google), on ne reste pas bloqué sur « Redirection »
+  useEffect(() => {
+    const reset = () => setBusy(false)
+    window.addEventListener('pageshow', reset)
+    return () => window.removeEventListener('pageshow', reset)
+  }, [])
+
   const click = async () => {
     setBusy(true)
+    setTimeout(() => setBusy(false), 10000)
     try {
       await loginWithGoogle()
     } catch (err) {
