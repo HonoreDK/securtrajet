@@ -157,11 +157,11 @@ const styles = {
   title: { fontSize: 24, fontWeight: 700, color: '#1d4ed8' },
   subtitle: { color: '#93c5fd', fontSize: 14, marginTop: 4 },
   form: { display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' },
-  row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  field: { display: 'flex', flexDirection: 'column', gap: 6 },
+  row: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 12 },
+  field: { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 },
   label: { fontSize: 13, fontWeight: 600, color: '#1e3a8a' },
   input: {
-    padding: '12px 16px', borderRadius: 12,
+    padding: '12px 16px', borderRadius: 12, width: '100%', minWidth: 0, boxSizing: 'border-box',
     border: '1.5px solid #dbeafe', fontSize: 15
   },
   button: {
