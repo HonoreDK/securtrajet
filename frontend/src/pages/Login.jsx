@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { MapPin, Eye, EyeOff } from 'lucide-react'
 import { authErrorMessage } from '../lib/mfa'
+import GoogleButton, { OrDivider } from '../components/GoogleButton'
 import logoApp from '../assets/logo-app.jpg'
 
 export default function Login() {
@@ -36,6 +37,9 @@ export default function Login() {
           <h1 style={styles.title}>SecurTrajet</h1>
           <p style={styles.subtitle}>Suivi familial sécurisé</p>
         </div>
+
+        <GoogleButton onError={setError} />
+        <OrDivider />
 
         <form onSubmit={handleSubmit} style={styles.form}>
           {error && <div style={styles.error}>{error}</div>}

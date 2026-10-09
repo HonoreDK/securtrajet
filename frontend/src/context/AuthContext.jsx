@@ -137,6 +137,15 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  // Connexion avec Google : redirection vers Google, retour sur le tableau de bord (session ouverte automatiquement)
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard`, queryParams: { prompt: 'select_account' } }
+    })
+    if (error) throw error
+  }
+
   const logout = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -185,6 +194,7 @@ export function AuthProvider({ children }) {
       mfaRequired,
       refreshMfa,
       login,
+      loginWithGoogle,
       register,
       logout,
       approveUser,
