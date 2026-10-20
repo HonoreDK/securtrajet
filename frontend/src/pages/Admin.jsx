@@ -83,7 +83,7 @@ export default function Admin() {
         <h3 style={{ marginBottom: 16 }}>Utilisateurs ({users.length})</h3>
 
         {loading ? <p>Chargement...</p> : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 80 }}>
             {users.map(u => (
               <div key={u.id} style={{
                 background: 'white', borderRadius: 14, padding: 16,
@@ -91,24 +91,27 @@ export default function Admin() {
                 boxShadow: '0 2px 10px rgba(29, 78, 216,0.06)'
               }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: '50%', background: '#1d4ed8',
+                  width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: '#1d4ed8',
                   color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                   <User size={20} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
                     {u.first_name} {u.last_name}
                     {u.role === 'admin' && <span style={{ marginLeft: 8, fontSize: 11, background: '#1d4ed8', color: 'white', padding: '2px 8px', borderRadius: 8 }}>ADMIN</span>}
                   </div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>{u.email}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', overflowWrap: 'anywhere' }}>
+                    {/* Coupe de préférence avant le @ quand l'adresse est trop longue */}
+                    {u.email?.split('@')[0]}<wbr />{u.email?.includes('@') && '@' + u.email.split('@')[1]}
+                  </div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>
                     Statut : <strong>{u.subscription_status}</strong>
                     {!u.is_approved && <span style={{ color: '#f59e0b', marginLeft: 8 }}>• En attente</span>}
                     {u.is_approved && <span style={{ color: '#10b981', marginLeft: 8 }}>• Approuvé</span>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
                   {!u.is_approved && u.role !== 'admin' && (
                     <button
                       onClick={() => handleApprove(u.id)}
